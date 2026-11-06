@@ -1,0 +1,40 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+group = 'io.github.pitinga'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation localGroovy()
+    testImplementation gradleTestKit()
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+gradlePlugin {
+    plugins {
+        trivyPlugin {
+            id = 'io.github.pitinga.trivy'
+            implementationClass = 'io.github.pitinga.trivy.TrivyPlugin'
+            displayName = 'Gradle Trivy Plugin'
+            description = 'Install Trivy automatically and scan Gradle JAR and Spring Boot artifacts'
+        }
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
