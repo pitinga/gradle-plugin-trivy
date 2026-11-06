@@ -21,6 +21,6 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.3'
+          gradle-version: '9.1.0'
       - name: Test and validate plugin
-        run: gradle --no-daemon test validatePlugins
+        run: gradle --no-daemon test validatePlugins --warning-mode all
