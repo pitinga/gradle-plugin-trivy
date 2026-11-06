@@ -2,7 +2,7 @@ package io.github.pitinga.trivy
 
 import groovy.json.JsonSlurper
 import org.gradle.api.GradleException
-import org.gradle.api.Project
+import org.gradle.api.logging.Logger
 
 import java.net.HttpURLConnection
 import java.net.URI
@@ -30,11 +30,15 @@ class TrivyInstaller {
     private static final long MAX_ARCHIVE_BYTES = 1_073_741_824L
     private static final long MAX_TEXT_BYTES = 5_242_880L
     private static final String RELEASES = 'https://github.com/aquasecurity/trivy/releases/download/'
-    private final Project project
+    private final File gradleHome
+    private final File projectRoot
+    private final Logger logger
     private final TrivyExtension config
 
-    TrivyInstaller(Project project, TrivyExtension config) {
-        this.project = project
+    TrivyInstaller(File gradleHome, File projectRoot, Logger logger, TrivyExtension config) {
+        this.gradleHome = gradleHome
+        this.projectRoot = projectRoot
+        this.logger = logger
         this.config = config
     }
 
@@ -42,7 +46,7 @@ class TrivyInstaller {
         if (config.preferInstalled) {
             File existing = onPath()
             if (existing != null) {
-                project.logger.lifecycle('Using Trivy from PATH: ' + existing.absolutePath)
+                logger.lifecycle('Using Trivy from PATH: ' + existing.absolutePath)
                 return existing
             }
         }
@@ -50,8 +54,8 @@ class TrivyInstaller {
         String version = resolveVersion(config.version)
         String platform = platformId()
         List<Path> roots = [
-            project.gradle.gradleUserHomeDir.toPath().resolve('trivy'),
-            project.rootProject.projectDir.toPath().resolve('.gradle').resolve('trivy')
+            gradleHome.toPath().resolve('trivy'),
+            projectRoot.toPath().resolve('.gradle').resolve('trivy')
         ]
 
         for (int i = 0; i < roots.size(); i++) {
@@ -60,7 +64,7 @@ class TrivyInstaller {
                 return cachedOrDownload(root, version, platform).toFile()
             } catch (Exception ex) {
                 if (i == 0 && permissionError(ex)) {
-                    project.logger.warn('Shared Gradle Trivy cache is not writable; falling back to project .gradle/trivy: ' + ex.message)
+                    logger.warn('Shared Gradle Trivy cache is not writable; falling back to project .gradle/trivy: ' + ex.message)
                     continue
                 }
                 throw new GradleException('Unable to prepare Trivy in ' + root + ': ' + ex.message, ex)
@@ -74,7 +78,7 @@ class TrivyInstaller {
         Path targetDir = root.resolve(version).resolve(platform)
         Path target = targetDir.resolve(binaryName)
         if (verified(targetDir, target)) {
-            project.logger.lifecycle('Using cached Trivy ' + version + ': ' + target)
+            logger.lifecycle('Using cached Trivy ' + version + ': ' + target)
             return target
         }
         if (!config.autoInstall) {
@@ -107,7 +111,7 @@ class TrivyInstaller {
             String checksums = new String(fetch(base.resolve('trivy_' + version + '_checksums.txt'), MAX_TEXT_BYTES), StandardCharsets.UTF_8)
             String expected = checksumFor(checksums, asset)
             Path archive = staging.resolve(asset)
-            project.logger.lifecycle('Downloading Trivy ' + version + ' (' + platform + ') from official GitHub Releases')
+            logger.lifecycle('Downloading Trivy ' + version + ' (' + platform + ') from official GitHub Releases')
             Files.write(archive, fetch(base.resolve(asset), MAX_ARCHIVE_BYTES),
                 StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
             String actual = hexSha256(archive)
@@ -134,7 +138,7 @@ class TrivyInstaller {
             } catch (AtomicMoveNotSupportedException ignored) {
                 Files.move(extracted, targetDir)
             }
-            project.logger.lifecycle('Trivy ' + version + ' installed and SHA-256 verified: ' + targetDir)
+            logger.lifecycle('Trivy ' + version + ' installed and SHA-256 verified: ' + targetDir)
             return targetDir.resolve(binaryName)
         } finally {
             deleteTree(staging)
