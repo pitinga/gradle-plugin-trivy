@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-11-06
+
+Gradle 9.9.0 compatibility update.
+
+### Changed
+- Explicitly annotated `TrivyTaskBase`, `TrivyInstallTask` and `TrivyScanTask` with `@DisableCachingByDefault` to pass stricter Gradle 9.9 plugin validation while retaining live vulnerability scans.
+- Updated CI compatibility testing for Gradle 8.14.3, 9.1.0, and 9.9.0 on Windows and Linux, including JDK 25 coverage for Gradle 9.9.0.
+- Updated CI install/scan and Plugin Portal publication workflow runtime to Gradle 9.9.0.
+- Did not rewrite the previously published v0.1.0 GitHub tag; v0.1.1 is the intended first Portal publication.
+
 ## 0.1.0 — 2026-11-06
 
 First stable source release.
