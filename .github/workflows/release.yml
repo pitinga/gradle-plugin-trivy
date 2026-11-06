@@ -55,4 +55,4 @@ jobs:
           fi
           gh release create v0.1.1 --verify-tag \
             --title 'Gradle Trivy Plugin v0.1.1' \
-            --notes-file CHANGELOG.md
+            --notes-file RELEASE_NOTES_0.1.1.md
