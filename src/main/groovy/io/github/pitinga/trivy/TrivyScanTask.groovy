@@ -12,7 +12,9 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
+import org.gradle.work.DisableCachingByDefault
 
+@DisableCachingByDefault(because = 'Vulnerability results depend on continuously updated external databases')
 abstract class TrivyScanTask extends TrivyTaskBase {
     @Inject
     abstract ExecOperations getExecOperations()
