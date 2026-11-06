@@ -46,7 +46,7 @@ The first version can require approval by the Gradle Plugin Portal team. Until a
 
 ## GitHub release
 
-Once final CI passes, create the `v0.1.0` annotated tag pointing to the validated commit and publish a GitHub release with the notes in CHANGELOG.md. Do not reuse the same version after publication; make future improvements in `0.1.1` or later.
+For the first release, the checked-in GitHub Actions workflow `.github/workflows/release.yml` is triggered when `RELEASE_READY.md` is committed to `main` (or manually via workflow dispatch). It validates the plugin, creates an annotated `v0.1.0` tag at that commit, and publishes a GitHub release using CHANGELOG.md. The workflow does **not** publish to the Gradle Plugin Portal. Do not reuse the same version after publication; make future improvements in `0.1.1` or later.
 
 ## Plugin coordinates
 
