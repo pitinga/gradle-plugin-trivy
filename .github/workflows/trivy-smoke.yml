@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.1.0'
+          gradle-version: '9.9.0'
           cache-provider: basic
       - name: Create sample consuming project
         shell: pwsh
@@ -47,5 +47,5 @@ jobs:
         run: gradle -p smoke trivyInstall --no-daemon --stacktrace --warning-mode all --configuration-cache
       - name: Reuse configuration cache without project access warnings
         run: gradle -p smoke trivyInstall --no-daemon --warning-mode all --configuration-cache
-      - name: Scan generated JAR on Gradle 9 with configuration cache
+      - name: Scan generated JAR on Gradle 9.9 with configuration cache
         run: gradle -p smoke trivy --no-daemon --warning-mode all --configuration-cache --stacktrace
