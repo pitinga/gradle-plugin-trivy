@@ -1,0 +1,46 @@
+name: Trivy installer integration smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/trivy-smoke.yml'
+
+jobs:
+  install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Create sample consuming project
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path smoke | Out-Null
+          @'
+          pluginManagement {
+              includeBuild('..')
+          }
+          rootProject.name = 'trivy-smoke'
+          '@ | Set-Content -Encoding utf8 smoke/settings.gradle
+          @'
+          plugins {
+              id 'java'
+              id 'io.github.pitinga.trivy'
+          }
+          trivy {
+              preferInstalled = false
+              version = '0.76.2'
+          }
+          '@ | Set-Content -Encoding utf8 smoke/build.gradle
+      - name: Download and verify official Trivy release
+        run: gradle -p smoke trivyInstall --no-daemon --stacktrace
