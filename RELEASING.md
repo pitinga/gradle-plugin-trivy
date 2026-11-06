@@ -25,6 +25,20 @@ gradle publishPlugins --validate-only
 
 That server-side validation may require Plugin Portal credentials.
 
+## Publish securely using GitHub Actions
+
+The repository provides [Publish Gradle Plugin Portal](https://github.com/pitinga/gradle-plugin-trivy/actions/workflows/publish-plugin.yml), a **manual-only** workflow. Add encrypted **Repository Secrets** in Settings > Secrets and variables > Actions with these exact names:
+
+- `GRADLE_PUBLISH_KEY`: Gradle Plugin Portal API key
+- `GRADLE_PUBLISH_SECRET`: corresponding API secret
+
+In Actions, select the workflow, choose `Run workflow` on `main`, and select:
+
+- `validate` (default): builds/tests the tagged `v0.1.0` source and runs `publishPlugins --validate-only` without uploading.
+- `publish`: runs the same verification and server-side validation first, then `publishPlugins` if both passed.
+
+The workflow checks out the immutable release tag `v0.1.0`, not the latest changing `main`, and limits repository permissions to read. Both secrets are only injected into the validation/publication steps; the public workflow does not contain or print their values.
+
 ## Portal credentials
 
 Prefer securely configured environment variables, for example in your local user session or a protected CI environment:
