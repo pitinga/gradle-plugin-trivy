@@ -37,10 +37,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 9.1
+      - name: Set up Gradle 9.9
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.1.0'
+          gradle-version: '9.9.0'
           cache-provider: basic
 
       - name: Test and validate plugin implementation
