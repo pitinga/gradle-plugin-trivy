@@ -21,7 +21,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.1.0'
+          gradle-version: '9.9.0'
           cache-provider: basic
       - name: Validate plugin and generate publication metadata
         run: gradle --no-daemon clean test validatePlugins publishToMavenLocal --warning-mode all
