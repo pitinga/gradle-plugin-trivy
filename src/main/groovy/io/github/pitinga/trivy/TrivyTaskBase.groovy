@@ -5,10 +5,12 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
+import org.gradle.work.DisableCachingByDefault
 
 /**
  * Provides Trivy configuration without accessing Project at task execution time.
  */
+@DisableCachingByDefault(because = 'Trivy tasks resolve external tools and do not declare cacheable output artifacts')
 abstract class TrivyTaskBase extends DefaultTask {
     @Input
     abstract Property<String> getTrivyVersion()
