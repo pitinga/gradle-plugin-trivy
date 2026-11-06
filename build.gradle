@@ -1,11 +1,10 @@
 plugins {
     id 'groovy'
-    id 'java-gradle-plugin'
-    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '2.2.1'
 }
 
 group = 'io.github.pitinga'
-version = '0.1.0-SNAPSHOT'
+version = '0.1.0'
 
 repositories {
     mavenCentral()
@@ -22,15 +21,26 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
+    withSourcesJar()
+    withJavadocJar()
 }
 
 gradlePlugin {
+    website = 'https://github.com/pitinga/gradle-plugin-trivy'
+    vcsUrl = 'https://github.com/pitinga/gradle-plugin-trivy'
+
     plugins {
         trivyPlugin {
             id = 'io.github.pitinga.trivy'
             implementationClass = 'io.github.pitinga.trivy.TrivyPlugin'
             displayName = 'Gradle Trivy Plugin'
-            description = 'Install Trivy automatically and scan Gradle JAR and Spring Boot artifacts'
+            description = 'Automatically install Trivy and scan built Java and Spring Boot JAR files for vulnerabilities'
+            tags.set(['trivy', 'security', 'vulnerability', 'spring-boot', 'java'])
+            compatibility(it) {
+                features {
+                    configurationCache = true
+                }
+            }
         }
     }
 }
