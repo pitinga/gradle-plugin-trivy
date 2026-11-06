@@ -2,7 +2,7 @@
 
 A lightweight Gradle plugin that builds the JAR (including Spring Boot's bootJar), locates or installs Trivy, and scans the generated artifact. Designed for **Windows/Eclipse**, Linux and macOS.
 
-**Version:** 0.1.0 — source release prepared for public distribution. **Not yet available on the Gradle Plugin Portal** until the first publication is approved.
+**Version:** 0.1.1 — Gradle 9.9 compatible release, prepared for public distribution. **Not yet available on the Gradle Plugin Portal** until the first publication is approved.
 
 ## Features
 
@@ -16,7 +16,7 @@ A lightweight Gradle plugin that builds the JAR (including Spring Boot's bootJar
 
 ## Requirements
 
-- JDK 17+ and Gradle 8.14.3 or 9.1.0 (tested in CI); local verification also completed with JDK 25. Older Gradle versions are not part of the tested compatibility matrix.
+- JDK 17+ and Gradle 8.14.3, 9.1.0 or 9.9.0 (CI-tested on Windows and Linux). Gradle 9.9.0 is also tested with JDK 25. Older Gradle versions are not part of the tested compatibility matrix.
 - Windows x64, Linux x64/ARM64 or macOS x64/ARM64.
 - Internet access to GitHub Releases for the first installation (unless Trivy is installed or cached).
 - Access to Trivy vulnerability databases for scanning, subject to your network policy.
@@ -61,11 +61,11 @@ To download or resolve Trivy without scanning:
 
 ## Usage after Plugin Portal approval
 
-Once `0.1.0` is visible in the Gradle Plugin Portal, consumer projects will be able to apply the plugin directly, without `includeBuild`:
+Once `0.1.1` is visible in the Gradle Plugin Portal, consumer projects will be able to apply the plugin directly, without `includeBuild`:
 
 ~~~groovy
 plugins {
-    id 'io.github.pitinga.trivy' version '0.1.0'
+    id 'io.github.pitinga.trivy' version '0.1.1'
 }
 ~~~
 
@@ -118,7 +118,7 @@ gradle test validatePlugins
 gradle publishToMavenLocal
 ~~~
 
-The repository includes unit tests and a Gradle TestKit task-registration smoke test. GitHub Actions additionally runs real Trivy installations, database downloads, and JAR scans on Windows and Linux with Gradle 9.1.0. The plugin has also been validated in Eclipse on Windows with Gradle 9.1.0 and JDK 25. See [GitHub Actions](https://github.com/pitinga/gradle-plugin-trivy/actions).
+The repository includes unit tests and a Gradle TestKit task-registration smoke test. GitHub Actions additionally runs real Trivy installations, database downloads, and JAR scans on Windows and Linux with Gradle 9.9.0. The plugin has also been validated in Eclipse on Windows with Gradle 9.1.0 and JDK 25. See [GitHub Actions](https://github.com/pitinga/gradle-plugin-trivy/actions).
 
 ## Security and publication
 
