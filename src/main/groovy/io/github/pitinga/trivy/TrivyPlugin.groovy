@@ -33,6 +33,12 @@ class TrivyPlugin implements Plugin<Project> {
                 task.scanMode.set(project.providers.gradleProperty('trivyScanMode').getOrElse(settings.scanMode))
                 String requestedTarget = project.providers.gradleProperty('trivyTarget').getOrElse(settings.target ?: '')
                 task.scanTarget.set(requestedTarget)
+                // -PtrivySkipDirs=path1,path2 overrides the DSL list for this invocation.
+                String commandLineSkipDirs = project.providers.gradleProperty('trivySkipDirs').orNull
+                List<String> configuredSkipDirs = commandLineSkipDirs == null
+                    ? new ArrayList<String>(settings.skipDirs ?: [])
+                    : commandLineSkipDirs.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
+                task.skipDirs.set(configuredSkipDirs)
                 task.scanners.set(settings.scanners)
                 task.severity.set(settings.severity)
                 task.ignoreUnfixed.set(settings.ignoreUnfixed)
