@@ -64,6 +64,25 @@ trivy {
 
 Both tasks are available from Eclipse Buildship's **Gradle Tasks** view.
 
+
+### Runtime version information (0.1.4 development)
+
+Both `trivy` and `trivyInstall` print a version header when they run:
+
+~~~text
+==================================================
+Gradle Trivy Plugin : 0.1.4-SNAPSHOT
+Trivy CLI           : 0.76.2
+Gradle              : 9.9.0
+Java                : 25.0.1
+==================================================
+~~~
+
+These values are illustrative. The plugin version comes from **metadata embedded in the plugin's own build artifact**, not from the consuming project's version. The Trivy CLI version is queried from the **actual resolved executable** using `trivy --version` (even if a PATH executable overrides the requested version). Gradle and Java versions reflect the runtime executing the task. If the CLI version cannot be determined, the header shows `unknown` without masking a scan error.
+
+**Availability:** this header is implemented in the unreleased `0.1.4-SNAPSHOT` branch; the published `0.1.3` does not print it. The version header does not change the default JAR/rootfs scan or the behavior of `trivyInstall`.
+
+
 ## Configuration at a glance
 
 Options are configured inside `trivy { ... }` in your `build.gradle`.
