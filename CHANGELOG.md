@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.3-SNAPSHOT — Unreleased
+## 0.1.3 — 2026-11-10
 
 - Introduce a dedicated Gradle 9.9 Isolated Projects CI matrix covering Windows and Linux with JDK 17 and 25.
 - Test the plugin in a multi-project consumer (two independent subprojects), checking both the original automatic JAR dependency and explicit scan targets, as well as Isolated Projects configuration cache reuse.
