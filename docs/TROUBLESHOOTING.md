@@ -10,11 +10,11 @@ Different modes and targets have different coverage. **No findings** or `num=0` 
 
 ## `trivy fs build/libs/app.jar` seems clean
 
-The plugin warns that `fs` on a compiled JAR may fail to inspect Java dependencies. Scan the JAR with `rootfs` instead. In the unreleased development branch, leave `scanMode = 'rootfs'` and either omit `target` entirely (automatic build) or specify the existing JAR's path.
+The plugin warns that `fs` on a compiled JAR may fail to inspect Java dependencies. Scan the JAR with `rootfs` instead. In version 0.1.2+, leave `scanMode = 'rootfs'` and either omit `target` entirely (automatic build) or specify the existing JAR's path.
 
 ## Failed because the configured target doesn't exist
 
-With an explicit `target`, the development plugin does not automatically run `bootJar` or `jar`. Build the application first:
+With an explicit `target`, version 0.1.2+ does not automatically run `bootJar` or `jar`. Build the application first:
 
 ~~~powershell
 .\gradlew bootJar trivy '-PtrivyTarget=build/libs/YOUR_APPLICATION.jar'
@@ -24,7 +24,7 @@ Without a `target`, the plugin selects `bootJar` (or `jar`) and builds it automa
 
 ## Why was the plugin's own `trivy.exe` reported as vulnerable?
 
-If the plugin installed Trivy into `<project>/.gradle/trivy`, a directory scan such as `trivy rootfs .` can scan that executable. The development plugin automatically skips its *own* cached installation when the cache is physically under the requested directory. You can also configure `skipDirs = ['.gradle/trivy']`.
+If the plugin installed Trivy into `<project>/.gradle/trivy`, a directory scan such as `trivy rootfs .` can scan that executable. Version 0.1.2+ automatically skips its *own* cached installation when the cache is physically under the requested directory. You can also configure `skipDirs = ['.gradle/trivy']`.
 
 With standalone Trivy:
 
@@ -82,11 +82,11 @@ Quote the complete command-line property, including the leading `-P`:
 .\gradlew trivy '-PtrivyTarget=build/libs/app.jar'
 ~~~
 
-This property requires version 0.1.2+; do not use it against the published 0.1.1 version.
+This property requires version 0.1.2+; do not use it with the older 0.1.1 version.
 
 ## Published plugin rejects `target` or `skipDirs`
 
-The public Gradle Plugin Portal version is **0.1.1**, which does not contain these two settings. The GitHub `main` branch has **0.1.2** changes. To test them, use a composite build as shown in the README and remove the published version declaration while doing so. Use version 0.1.2 or later once available in the Portal.
+The Plugin Portal's **0.1.1** version does not support these two properties. Upgrade to **0.1.2 or later**, which is now publicly available. The original default JAR scan remains unchanged.
 
 ## Eclipse console or Gradle deprecation warnings
 
@@ -97,7 +97,7 @@ Use `.\gradlew trivy --warning-mode all` or put `--warning-mode all` under **Run
 - No automatic container-image or registry scanning.
 - No full secret scanner output in the custom template.
 - No automatic build/packaging when an explicit target is configured.
-- In the development branch, a directory scan can include artifacts and binaries unrelated to the application; review findings by target.
+- In version 0.1.2+, a directory scan can include artifacts and binaries unrelated to the application; review findings by target.
 - Windows and Linux CI validate Gradle 8.14.3, 9.1.0 and 9.9.0; macOS and Linux ARM64 installer support exists but is not in that matrix.
 - Gradle 10 has not been validated.
 - SHA-256 verification against official release files checks archive integrity; it is not independent code signing or attestation.
