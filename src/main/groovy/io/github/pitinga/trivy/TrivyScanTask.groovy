@@ -78,7 +78,7 @@ Status: CLEAN - no vulnerabilities found
      * requested directory, and keep user-configured glob expressions unchanged.
      * A normal single-JAR scan does not gain any implicit exclusions.
      */
-    static List<String> effectiveSkipDirs(File target, File projectDir, File rootProjectDir,
+    static List<String> effectiveSkipDirs(File target, File rootProjectDir,
                                            File gradleHomeDir, List<String> configured) {
         LinkedHashSet<String> excludes = new LinkedHashSet<>()
         (configured ?: []).each { String value ->
@@ -153,7 +153,7 @@ Status: CLEAN - no vulnerabilities found
 
         // For directory scans, never scan a Trivy executable that this plugin cached
         // inside the target directory; also honor any user-selected skip patterns.
-        List<String> excludedDirs = effectiveSkipDirs(targetFile, baseDir, 
+        List<String> excludedDirs = effectiveSkipDirs(targetFile, 
             rootDirectory.get().asFile, gradleHomeDirectory.get().asFile, skipDirs.get())
         excludedDirs.each { pattern -> arguments.addAll(['--skip-dirs', pattern]) }
 
