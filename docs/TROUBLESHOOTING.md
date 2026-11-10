@@ -82,11 +82,11 @@ Quote the complete command-line property, including the leading `-P`:
 .\gradlew trivy '-PtrivyTarget=build/libs/app.jar'
 ~~~
 
-This property only exists on the development branch; do not use it against the published 0.1.1 version.
+This property requires version 0.1.2+; do not use it against the published 0.1.1 version.
 
 ## Published plugin rejects `target` or `skipDirs`
 
-The public Gradle Plugin Portal version is **0.1.1**, which does not contain these two settings. The GitHub `main` branch has **0.1.2-SNAPSHOT (unreleased)** changes. To test them, use a composite build as shown in the README and remove the published version declaration while doing so. The code from main is not yet published to the Portal.
+The public Gradle Plugin Portal version is **0.1.1**, which does not contain these two settings. The GitHub `main` branch has **0.1.2** changes. To test them, use a composite build as shown in the README and remove the published version declaration while doing so. Use version 0.1.2 or later once available in the Portal.
 
 ## Eclipse console or Gradle deprecation warnings
 
