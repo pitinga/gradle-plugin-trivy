@@ -52,4 +52,4 @@ jobs:
       - name: Build JAR for explicit single-file scan
         run: gradle -p smoke jar --no-daemon --warning-mode all --configuration-cache --stacktrace
       - name: Scan generated JAR via -PtrivyTarget with Trivy fs
-        run: gradle -p smoke trivy -PtrivyTarget=build/libs/trivy-smoke.jar --no-daemon --warning-mode all --configuration-cache --stacktrace
+        run: gradle -p smoke trivy '-PtrivyTarget=build/libs/trivy-smoke.jar' --no-daemon --warning-mode all --configuration-cache --stacktrace
