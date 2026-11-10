@@ -34,7 +34,7 @@ gradlePlugin {
             id = 'io.github.pitinga.trivy'
             implementationClass = 'io.github.pitinga.trivy.TrivyPlugin'
             displayName = 'Gradle Trivy Plugin'
-            description = 'Automatically install Trivy and scan built Java and Spring Boot JAR files for vulnerabilities'
+            description = 'Automatically install Trivy and scan Gradle project files or built JAR artifacts for vulnerabilities'
             tags.set(['trivy', 'security', 'vulnerability', 'spring-boot', 'java'])
             compatibility(it) {
                 features {
