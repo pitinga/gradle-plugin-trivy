@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) | [Configuration](CONFIGURATION.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-**Version labels matter:** published `0.1.1` users can run the default JAR scan and configure existing extension fields. `target`, `skipDirs` and scan-specific `-P` overrides belong to **unreleased `main` / `0.1.2-SNAPSHOT`**, used through the composite-build instructions in the README.
+**Version labels matter:** published `0.1.1` users can run the default JAR scan and configure existing extension fields. `target`, `skipDirs` and scan-specific `-P` overrides belong to **0.1.2+**, used through the composite-build instructions in the README.
 
 ## 1. Scan a Spring Boot application (published 0.1.1+)
 
@@ -113,7 +113,7 @@ The CLI list **replaces** the DSL list. Excluding a directory changes the covera
 3. For command arguments, open **Run → Run Configurations → Gradle Task → Arguments** and set **Program Arguments** (e.g., `--warning-mode all`).
 4. The plugin uses a plain-text ASCII report to avoid corrupted box-drawing characters in the Eclipse Console.
 
-Only on the development plugin, `'-PtrivyTarget=.'` and other scan overrides may be passed through Program Arguments. Do **not** put Gradle options in **JVM Arguments**.
+Only on version 0.1.2+, `'-PtrivyTarget=.'` and other scan overrides may be passed through Program Arguments. Do **not** put Gradle options in **JVM Arguments**.
 
 ## 10. Azure DevOps pipeline
 
@@ -137,7 +137,7 @@ steps:
         ./gradlew trivy --no-daemon --warning-mode all
 ~~~
 
-The agent must have a compatible Java runtime and network/database access for Trivy. For a security gate, configure `failOnVulnerability = true` in `build.gradle`. With the development plugin, command-line scan overrides can also be supplied.
+The agent must have a compatible Java runtime and network/database access for Trivy. For a security gate, configure `failOnVulnerability = true` in `build.gradle`. With version 0.1.2+, command-line scan overrides can also be supplied.
 
 ## 11. GitHub Actions
 
