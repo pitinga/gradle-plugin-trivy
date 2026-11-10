@@ -125,39 +125,9 @@ foreach ($case in $cases) {
         $reportJson = $reportText | ConvertFrom-Json
         $cveIds = @($reportJson.Results | ForEach-Object { $_.Vulnerabilities } |
             Where-Object { $null -ne $_ } | ForEach-Object { $_.VulnerabilityID } |
-            Where-Object { $_ -match '^CVE-\\d{4}-\\d{4,}
-    $result = [pscustomobject]@{
-        Case = $name
-        Format = $case.Format
-        Strategy = $case.Strategy
-        File = $case.SaveFile
-        ExitCode = $exitCode
-        Status = $status
-        PluginVersionSeen = $versionShown
-        JsonValid = $jsonValid
-        CVEs = @($cveIds).Count
-        SameCVEsAsOriginal = $sameCves
-        Seconds = [math]::Round($watch.Elapsed.TotalSeconds, 1)
-        ConsoleLog = $logFile
-        Report = if ($saved) { $reportFile } else { '' }
-    }
-    $results += $result
-    Write-Host ("{0} | Exit={1} | {2}s | Saved={3} | PluginVersion={4}" -f
-        $status, $exitCode, $result.Seconds, $saved, $versionShown)
-}
-
-$summaryFile = Join-Path $resultsDir 'summary.csv'
-$results | Export-Csv -LiteralPath $summaryFile -NoTypeInformation -Encoding utf8
-$results | Format-Table Case, Format, Strategy, File, Status, CVEs, SameCVEsAsOriginal, Seconds -AutoSize
-Write-Host "Saved comparison: $summaryFile"
-Write-Host "Inspect .console.log for Eclipse/Windows table rendering and .txt/.json for original UTF-8."
-if (@($results | Where-Object Status -ne 'OK').Count -gt 0) {
-    Write-Warning 'One or more cases require inspection. Original console output is kept separately.'
-    exit 1
-}
- } | Sort-Object -Unique)
+            Where-Object { $_ -match '^CVE-\d{4}-\d{4,}$' } | Sort-Object -Unique)
     } else {
-        $cveIds = @([regex]::Matches($reportText, 'CVE-\\d{4}-\\d{4,}') |
+        $cveIds = @([regex]::Matches($reportText, 'CVE-\d{4}-\d{4,}') |
             ForEach-Object { $_.Value } | Sort-Object -Unique)
     }
     if ($null -eq $baselineCveIds -and $case.Name.StartsWith('00-')) {
@@ -182,6 +152,8 @@ if (@($results | Where-Object Status -ne 'OK').Count -gt 0) {
         Status = $status
         PluginVersionSeen = $versionShown
         JsonValid = $jsonValid
+        CVEs = @($cveIds).Count
+        SameCVEsAsOriginal = $sameCves
         Seconds = [math]::Round($watch.Elapsed.TotalSeconds, 1)
         ConsoleLog = $logFile
         Report = if ($saved) { $reportFile } else { '' }
@@ -193,7 +165,7 @@ if (@($results | Where-Object Status -ne 'OK').Count -gt 0) {
 
 $summaryFile = Join-Path $resultsDir 'summary.csv'
 $results | Export-Csv -LiteralPath $summaryFile -NoTypeInformation -Encoding utf8
-$results | Format-Table Case, Format, Strategy, File, Status, JsonValid, Seconds -AutoSize
+$results | Format-Table Case, Format, Strategy, File, Status, CVEs, SameCVEsAsOriginal, Seconds -AutoSize
 Write-Host "Saved comparison: $summaryFile"
 Write-Host "Inspect .console.log for Eclipse/Windows table rendering and .txt/.json for original UTF-8."
 if (@($results | Where-Object Status -ne 'OK').Count -gt 0) {
