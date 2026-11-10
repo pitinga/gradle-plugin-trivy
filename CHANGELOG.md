@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3-SNAPSHOT — Unreleased
+
+- Introduce a dedicated Gradle 9.9 Isolated Projects CI matrix covering Windows and Linux with JDK 17 and 25.
+- Test the plugin in a multi-project consumer (two independent subprojects), checking both the original automatic JAR dependency and explicit scan targets, as well as Isolated Projects configuration cache reuse.
+- Replace cross-project access to `rootProject.layout` with the immutable `project.rootDir`, eliminating an Isolated Projects configuration violation.
+- Add real Trivy JAR scans in Isolated Projects mode to the Windows/Linux integration smoke workflow.
+- Keep version 0.1.2 published artifacts and original scan defaults unchanged.
+
 ## 0.1.2 — 2026-11-10
 
 - Default `trivy.version` to `latest`, resolving the latest stable official GitHub release when a download is needed.
