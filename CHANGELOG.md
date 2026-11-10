@@ -6,6 +6,7 @@
 - Test the plugin in a multi-project consumer (two independent subprojects), checking both the original automatic JAR dependency and explicit scan targets, as well as Isolated Projects configuration cache reuse.
 - Replace cross-project access to `rootProject.layout` with the immutable `project.rootDir`, eliminating an Isolated Projects configuration violation.
 - Add real Trivy JAR scans in Isolated Projects mode to the Windows/Linux integration smoke workflow.
+- Declare `isolatedProjects = true` in Gradle plugin metadata after successful isolated multi-project and real scan verification.
 - Keep version 0.1.2 published artifacts and original scan defaults unchanged.
 
 ## 0.1.2 — 2026-11-10
