@@ -41,7 +41,6 @@ class TrivyPlugin implements Plugin<Project> {
                 task.skipDirs.set(configuredSkipDirs)
                 task.reportFormat.set(project.providers.gradleProperty('trivyFormat').getOrElse(settings.format))
                 task.reportOutputFile.set(project.providers.gradleProperty('trivyOutput').getOrElse(settings.outputFile ?: ''))
-                task.reportOutputStrategy.set(project.providers.gradleProperty('trivyOutputStrategy').getOrElse(settings.outputStrategy))
                 task.scanners.set(settings.scanners)
                 task.severity.set(settings.severity)
                 task.ignoreUnfixed.set(settings.ignoreUnfixed)
