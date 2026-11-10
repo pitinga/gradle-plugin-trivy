@@ -19,4 +19,11 @@ class TrivyExtension {
     String scanners = 'vuln'
     String severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     boolean ignoreUnfixed = false
+
+    /** Lab: original ASCII template (custom), native Trivy table, or JSON. */
+    String format = 'custom'
+    /** Lab: optional destination relative to the Gradle project, or an absolute path. */
+    String outputFile = ''
+    /** Lab: direct, capture (UTF-8), file (Trivy --output + UTF-8 read), or ascii. */
+    String outputStrategy = 'direct'
 }
