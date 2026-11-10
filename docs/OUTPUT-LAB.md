@@ -82,11 +82,14 @@ pwsh -File .\scripts\Test-Trivy-Output.ps1
 
 # Six representative variants, faster:
 pwsh -File .\scripts\Test-Trivy-Output.ps1 -Fast
+
+# If 'gradle' is not installed globally, reuse any working Gradle wrapper:
+pwsh -File .\scripts\Test-Trivy-Output.ps1 -GradleExecutable 'C:\DBServer\eclipse-workspace\exemplo-spring-zs\gradlew.bat'
 ~~~
 
 This uses the included `lab-output` Gradle consumer with a deliberately vulnerable historical RabbitMQ Java dependency packaged as a nested JAR. It is a disposable **test fixture** and must never be copied into production dependencies.
 
-The script runs one scan at a time to avoid Trivy database-cache lock contention, but **all comparisons are generated in one command**. Each experiment saves a separate `*.console.log` and an optional `*.json` or `*.txt` file to:
+The script runs one scan at a time to avoid Trivy database-cache lock contention, but **all comparisons are generated in one command**. Its `summary.csv` also compares the distinct CVE IDs of each representation against the original custom report, so an apparently cleaner or incomplete output is flagged for review. Each experiment saves a separate `*.console.log` and an optional `*.json` or `*.txt` file to:
 
 ~~~text
 lab-output/build/trivy-output-lab/<timestamp>/
