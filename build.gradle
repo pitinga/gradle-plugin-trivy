@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'io.github.pitinga'
-version = '0.1.3'
+version = '0.1.4-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -23,6 +23,15 @@ java {
     }
     withSourcesJar()
     withJavadocJar()
+}
+
+// Embed the plugin artifact's own version in the resource consumed at task runtime.
+def embeddedPluginVersion = project.version.toString()
+tasks.named('processResources') {
+    inputs.property('embeddedPluginVersion', embeddedPluginVersion)
+    filesMatching('io/github/pitinga/trivy/plugin.properties') {
+        expand(pluginVersion: embeddedPluginVersion)
+    }
 }
 
 gradlePlugin {
