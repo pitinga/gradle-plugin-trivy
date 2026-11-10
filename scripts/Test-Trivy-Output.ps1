@@ -133,7 +133,13 @@ foreach ($case in $cases) {
     if ($null -eq $baselineCveIds -and $case.Name.StartsWith('00-')) {
         $baselineCveIds = $cveIds
     }
-    $sameCves = if ($null -eq $baselineCveIds) { $null } else {
+    $sameCves = if ($null -eq $baselineCveIds) {
+        $null
+    } elseif (@($baselineCveIds).Count -eq 0 -and @($cveIds).Count -eq 0) {
+        $true
+    } elseif (@($baselineCveIds).Count -eq 0 -or @($cveIds).Count -eq 0) {
+        $false
+    } else {
         @(Compare-Object -ReferenceObject @($baselineCveIds) -DifferenceObject @($cveIds)).Count -eq 0
     }
 
