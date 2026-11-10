@@ -2,11 +2,11 @@
 
 [Back to README](../README.md) | [Examples](EXAMPLES.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-This guide distinguishes **published plugin 0.1.1** from **main branch 0.1.2-SNAPSHOT (unreleased)**. Applying version 0.1.1 from the Gradle Plugin Portal does not give you features that exist only on main.
+This guide distinguishes plugin **0.1.1** from the **0.1.2** release. Applying version 0.1.1 from the Gradle Plugin Portal does not provide features introduced in 0.1.2.
 
 ## Groovy DSL configuration
 
-The following block describes the **development branch**:
+The following block describes the **0.1.2 release**:
 
 ~~~groovy
 trivy {
@@ -23,7 +23,7 @@ trivy {
 }
 ~~~
 
-| Option | Type | Published 0.1.1 default | Development default | Purpose |
+| Option | Type | Published 0.1.1 default | 0.1.2 default | Purpose |
 | --- | --- | --- | --- | --- |
 | `version` | String | `0.76.2` | `latest` | Trivy CLI release for downloads |
 | `autoInstall` | boolean | `true` | `true` | Install Trivy if absent |
@@ -52,7 +52,7 @@ With an explicit `target`, the plugin deliberately does **not** execute `bootJar
 
 ## Gradle -P command-line overrides
 
-These three properties are supported on **main / 0.1.2-SNAPSHOT**:
+These three properties are supported on **0.1.2+**:
 
 | Gradle property | What it overrides |
 | --- | --- |
@@ -80,7 +80,7 @@ trivy {
 
 Each entry is forwarded to Trivy as a separate `--skip-dirs` argument. Relative paths and Trivy glob patterns can be used. Empty list entries are ignored, and duplicates are consolidated.
 
-In a **directory scan**, the development plugin automatically excludes **its own Trivy installation cache** if that cache is physically inside the target directory. For example, when fallback installation placed Trivy under `./.gradle/trivy`, a scan of `.` skips that directory without requiring manual configuration. A normal single-JAR scan has **no automatic exclusions**. Excluding files can hide vulnerabilities: do not exclude `build/libs` when you intend to scan the packaged JAR.
+In a **directory scan**, version 0.1.2+ automatically excludes **its own Trivy installation cache** if that cache is physically inside the target directory. For example, when fallback installation placed Trivy under `./.gradle/trivy`, a scan of `.` skips that directory without requiring manual configuration. A normal single-JAR scan has **no automatic exclusions**. Excluding files can hide vulnerabilities: do not exclude `build/libs` when you intend to scan the packaged JAR.
 
 ## Vulnerability output and scanners
 
