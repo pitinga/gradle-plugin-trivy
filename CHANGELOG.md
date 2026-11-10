@@ -6,6 +6,9 @@
 - Preserve `preferInstalled = true`: use an existing Trivy executable from PATH first, without querying or downloading a release.
 - Preserve the ability to pin `trivy.version` to a specific release and set `preferInstalled = false` to force cache/download resolution.
 - Add a regression test for these defaults.
+- Change the default scan to `trivy fs .` (current Gradle project directory), without an implicit `bootJar`/`jar` build.
+- Add `trivy.target` to scan an existing file or directory, with command-line override `-PtrivyTarget=...` (e.g. `build/libs/app.jar`).
+- Add `-PtrivyScanMode` override and Windows/Linux integration tests for directory and JAR scans.
 
 ## 0.1.1 — 2026-11-06
 
