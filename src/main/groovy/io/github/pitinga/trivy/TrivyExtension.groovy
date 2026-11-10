@@ -14,6 +14,8 @@ class TrivyExtension {
     String scanMode = 'rootfs'
     /** Empty: build and scan bootJar/jar. Set '.' or a file path for an explicit scan target. */
     String target = ''
+    /** Optional Trivy --skip-dirs patterns. Empty by default for built-JAR scans. */
+    List<String> skipDirs = []
     String scanners = 'vuln'
     String severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     boolean ignoreUnfixed = false
