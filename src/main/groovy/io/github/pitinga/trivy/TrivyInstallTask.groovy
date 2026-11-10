@@ -8,6 +8,7 @@ abstract class TrivyInstallTask extends TrivyTaskBase {
     @TaskAction
     void install() {
         File executable = resolveExecutable()
+        logVersionHeader(executable)
         logger.lifecycle('Trivy executable: ' + executable.absolutePath)
     }
 }
