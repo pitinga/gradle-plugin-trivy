@@ -99,7 +99,7 @@ class TrivyReportOutput {
 
     /**
      * A JSON console is also safe on legacy Windows code pages. Replacing raw
-     * non-ASCII characters with their JSON \uXXXX escapes retains JSON values.
+     * non-ASCII characters with their JSON U+XXXX escapes retains JSON values.
      * The on-disk JSON file is always written natively by Trivy.
      */
     static String portableJson(String value) {
