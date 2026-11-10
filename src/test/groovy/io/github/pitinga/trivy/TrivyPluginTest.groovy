@@ -45,12 +45,14 @@ afterEvaluate {
     println 'TRIVY_MODE=' + scan.scanMode.get()
     println 'TRIVY_TARGET=' + scan.scanTarget.get()
     println 'TRIVY_ARTIFACT=' + scan.artifactFile.get().asFile.name
+    println 'TRIVY_SKIP_DIRS=' + scan.skipDirs.get()
 }
 """)
         def result = runGradle('trivy', '--dry-run')
         assertTrue(result.output.contains('TRIVY_MODE=rootfs'))
         assertTrue(result.output.contains('TRIVY_TARGET='))
         assertTrue(result.output.contains('TRIVY_ARTIFACT=test-app.jar'))
+        assertTrue(result.output.contains('TRIVY_SKIP_DIRS=[]'))
         assertTrue(result.output.contains(':jar SKIPPED'), 'Default scan must build the application JAR')
         assertTrue(result.output.contains(':trivy SKIPPED'))
     }
@@ -122,5 +124,86 @@ afterEvaluate {
         assertTrue(result.output.contains('TRIVY_TARGET=.'))
         assertFalse(result.output.contains('TRIVY_TARGET=build/libs/from-dsl.jar'))
         assertFalse(result.output.contains(':jar SKIPPED'))
+    }
+
+    @Test
+    void supportsDslTargetAndMultipleSkipDirs() {
+        writeProject("""
+trivy {
+    target = '.'
+    scanMode = 'rootfs'
+    skipDirs = ['.gradle/trivy', 'build/tmp', '**/node_modules']
+}
+afterEvaluate {
+    def task = tasks.named('trivy').get()
+    println 'TRIVY_TARGET=' + task.scanTarget.get()
+    println 'TRIVY_SKIP_DIRS=' + task.skipDirs.get().join('|')
+}
+""")
+        def result = runGradle('trivy', '--dry-run')
+        assertTrue(result.output.contains('TRIVY_TARGET=.'))
+        assertTrue(result.output.contains('TRIVY_SKIP_DIRS=.gradle/trivy|build/tmp|**/node_modules'))
+        assertFalse(result.output.contains(':jar SKIPPED'))
+    }
+
+    @Test
+    void commandLineSkipDirsOverridesDslWithCommaSeparatedValues() {
+        writeProject("""
+trivy {
+    target = '.'
+    skipDirs = ['dont-use-me']
+}
+afterEvaluate {
+    println 'TRIVY_SKIP_DIRS=' + tasks.named('trivy').get().skipDirs.get().join('|')
+}
+""")
+        def result = runGradle('trivy', '--dry-run',
+            '-PtrivySkipDirs=./.gradle/trivy, build/tmp, **/node_modules')
+        assertTrue(result.output.contains('TRIVY_SKIP_DIRS=./.gradle/trivy|build/tmp|**/node_modules'))
+        assertFalse(result.output.contains('dont-use-me'))
+    }
+
+    @Test
+    void automaticSkipExcludesOnlyPluginCacheInsideDirectoryTarget() {
+        Path root = testProjectDir.resolve('scan-root')
+        Path localTrivy = root.resolve('.gradle/trivy')
+        java.nio.file.Files.createDirectories(localTrivy)
+        Path externalGradleHome = testProjectDir.resolve('external-gradle-home')
+        java.nio.file.Files.createDirectories(externalGradleHome.resolve('trivy'))
+        def result = TrivyScanTask.effectiveSkipDirs(
+            root.toFile(), root.toFile(), externalGradleHome.toFile(), ['build/tmp'])
+        assertEquals(['build/tmp', './.gradle/trivy'], result)
+    }
+
+    @Test
+    void explicitSkipDirAvoidsDuplicateAutomaticExclusion() {
+        Path root = testProjectDir.resolve('scan-root')
+        java.nio.file.Files.createDirectories(root.resolve('.gradle/trivy'))
+        Path externalGradleHome = testProjectDir.resolve('external-gradle-home')
+        def result = TrivyScanTask.effectiveSkipDirs(
+            root.toFile(), root.toFile(), externalGradleHome.toFile(), ['./.gradle/trivy', 'dist'])
+        assertEquals(['./.gradle/trivy', 'dist'], result)
+    }
+
+    @Test
+    void scanningSingleJarKeepsExactlyTheSelectedSkipDirs() {
+        Path root = testProjectDir.resolve('scan-root')
+        java.nio.file.Files.createDirectories(root.resolve('.gradle/trivy'))
+        Path jar = root.resolve('app.jar')
+        java.nio.file.Files.write(jar, new byte[] { 1, 2, 3 })
+        def result = TrivyScanTask.effectiveSkipDirs(
+            jar.toFile(), root.toFile(), testProjectDir.resolve('external-gradle-home').toFile(),
+            ['build/tmp'])
+        assertEquals(['build/tmp'], result)
+    }
+
+    @Test
+    void directoryScanAlsoOmitsGradleUserHomeCacheIfItIsInsideTarget() {
+        Path root = testProjectDir.resolve('scan-root')
+        Path embeddedGradleHome = root.resolve('gradle-home')
+        java.nio.file.Files.createDirectories(embeddedGradleHome.resolve('trivy'))
+        def result = TrivyScanTask.effectiveSkipDirs(
+            root.toFile(), root.toFile(), embeddedGradleHome.toFile(), [])
+        assertEquals(['./gradle-home/trivy'], result)
     }
 }
