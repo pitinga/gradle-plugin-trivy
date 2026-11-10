@@ -63,6 +63,6 @@ class TrivyPlugin implements Plugin<Project> {
         task.autoInstall.set(options.autoInstall)
         task.preferInstalled.set(options.preferInstalled)
         task.gradleHomeDirectory.set(project.gradle.gradleUserHomeDir)
-        task.rootDirectory.set(project.rootProject.layout.projectDirectory)
+        task.rootDirectory.fileValue(project.rootDir)
     }
 }
