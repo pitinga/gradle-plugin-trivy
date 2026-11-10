@@ -20,10 +20,8 @@ class TrivyExtension {
     String severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     boolean ignoreUnfixed = false
 
-    /** Lab: original ASCII template (custom), native Trivy table, or JSON. */
-    String format = 'custom'
-    /** Lab: optional destination relative to the Gradle project, or an absolute path. */
+    /** Use Trivy's native table by default; JSON is also supported. */
+    String format = 'table'
+    /** Empty: console; set path to save native Trivy UTF-8 using --output. */
     String outputFile = ''
-    /** Lab: direct, capture (UTF-8), file (Trivy --output + UTF-8 read), or ascii. */
-    String outputStrategy = 'direct'
 }
