@@ -43,12 +43,33 @@ jobs:
               version = '0.76.2'
           }
           '@ | Set-Content -Encoding utf8 smoke/build.gradle
-      - name: Download and verify official Trivy release
-        run: gradle -p smoke trivyInstall --no-daemon --stacktrace --warning-mode all --configuration-cache
+      - name: Download Trivy and verify trivyInstall version header
+        shell: pwsh
+        run: |
+          gradle -p smoke trivyInstall --no-daemon --stacktrace --warning-mode all --configuration-cache *> trivy-install-versions.log
+          $exitCode = $LASTEXITCODE
+          $log = Get-Content trivy-install-versions.log -Raw
+          Write-Host $log
+          if ($exitCode -ne 0) { exit $exitCode }
+          $expected = (Select-String -Path build.gradle -Pattern "^version = '([^']+)'").Matches[0].Groups[1].Value
+          if (-not $log.Contains("Gradle Trivy Plugin : $expected")) { throw "Expected plugin artifact version $expected in trivyInstall header" }
+          if ($log -notmatch '(?m)^Trivy CLI\s*:\s*0\.76\.2') { throw 'Expected real Trivy CLI 0.76.2 in trivyInstall header' }
+          if ($log -notmatch '(?m)^Gradle\s*:\s*9\.9\.0') { throw 'Expected Gradle version in header' }
+          if ($log -notmatch '(?m)^Java\s*:\s*17') { throw 'Expected Java version in header' }
       - name: Reuse configuration cache without project access warnings
         run: gradle -p smoke trivyInstall --no-daemon --warning-mode all --configuration-cache
-      - name: Default scan builds JAR and uses Trivy rootfs
-        run: gradle -p smoke trivy --no-daemon --warning-mode all --configuration-cache --stacktrace
+      - name: Default scan builds JAR and verifies plugin and CLI versions
+        shell: pwsh
+        run: |
+          gradle -p smoke trivy --no-daemon --warning-mode all --configuration-cache --stacktrace *> trivy-scan-versions.log
+          $exitCode = $LASTEXITCODE
+          $log = Get-Content trivy-scan-versions.log -Raw
+          Write-Host $log
+          if ($exitCode -ne 0) { exit $exitCode }
+          $expected = (Select-String -Path build.gradle -Pattern "^version = '([^']+)'").Matches[0].Groups[1].Value
+          if (-not $log.Contains("Gradle Trivy Plugin : $expected")) { throw "Expected plugin artifact version $expected in scan header" }
+          if ($log -notmatch '(?m)^Trivy CLI\s*:\s*0\.76\.2') { throw 'Expected real Trivy CLI 0.76.2 in scan header' }
+          if (-not $log.Contains('Scanning artifact with Trivy:')) { throw 'Default JAR scan must remain enabled' }
       - name: Explicit project directory scan using trivy fs .
         run: gradle -p smoke trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.' --no-daemon --warning-mode all --configuration-cache --stacktrace
       - name: Explicit project directory scan using trivy rootfs .
