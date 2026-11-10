@@ -1,19 +1,15 @@
-# Gradle Trivy Plugin v0.1.2 — release approved
+# Gradle Trivy Plugin v0.1.3 — release approved
 
-The 0.1.2 source code passed unit and plugin-validation tests on:
+This release adds tested **Gradle Isolated Projects** compatibility while preserving the original Trivy `rootfs` JAR scan as default.
 
-- Windows and Linux with Gradle 8.14.3, 9.1.0 and 9.9.0 (JDK 17);
-- Windows and Linux with Gradle 9.9.0 (JDK 25);
-- Real Trivy binary installation and vulnerability scanning on Windows/Linux;
-- Default JAR rootfs mode, explicit directory and JAR targets, skipDirs flags and local self-cache exclusions;
-- Gradle configuration cache.
+Validation completed before release:
 
-The original v0.1.0 and v0.1.1 tags are immutable and remain unchanged.
+- Eight existing Gradle checks passed on Windows and Linux with Gradle 8.14.3, 9.1.0, 9.9.0 (JDK 17), plus Gradle 9.9.0 (JDK 25).
+- Four dedicated Gradle 9.9 Isolated Projects tests passed in a multi-project build (Windows/Linux, JDK 17/25), including configuration cache reuse.
+- Real Trivy scans with `--isolated-projects` passed on Windows and Linux.
 
-This commit starts the **gated v0.1.2 release workflow**. Before tagging, it must
-pass another plugin test/validation build AND Gradle Plugin Portal
-`publishPlugins --validate-only` using GitHub encrypted repository secrets.
-Only after successful validation will it create the annotated GitHub tag/release
-and publish the same tag to the Gradle Plugin Portal.
+The versioned `v0.1.2` tag and Gradle Plugin Portal publication remain unchanged.
 
-Approval: user explicitly requested publication of the new version after successful tests.
+This commit starts a *gated* v0.1.3 release workflow. It must run `clean test validatePlugins publishToMavenLocal` and `publishPlugins --validate-only` using existing encrypted GitHub Repository Secrets before it creates the v0.1.3 GitHub tag/release and publishes that immutable tag to the Gradle Plugin Portal.
+
+Authorization: the user explicitly requested publication after test success.
