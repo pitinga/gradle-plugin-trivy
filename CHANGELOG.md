@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4-SNAPSHOT — Unreleased
+
+- Print a consistent ASCII runtime version header in both `trivy` and `trivyInstall` tasks (Gradle Trivy Plugin, actual Trivy CLI, Gradle and Java versions).
+- Embed the plugin version into its own published build resources rather than inferring it from the consuming project or hardcoding a release number.
+- Query the selected Trivy executable using `--version`, including PATH-provided binaries, with an informational `unknown` fallback if version detection fails.
+- Add regression tests for embedded version metadata and Trivy output parsing plus Windows/Linux integration checks of real task headers.
+- Preserve the original automatic bootJar/jar rootfs scan, configuration cache and Isolated Projects behavior.
+
 ## 0.1.3 — 2026-11-10
 
 - Introduce a dedicated Gradle 9.9 Isolated Projects CI matrix covering Windows and Linux with JDK 17 and 25.
