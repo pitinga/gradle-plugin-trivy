@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2-SNAPSHOT — Unreleased
+## 0.1.2 — 2026-11-10
 
 - Default `trivy.version` to `latest`, resolving the latest stable official GitHub release when a download is needed.
 - Preserve `preferInstalled = true`: use an existing Trivy executable from PATH first, without querying or downloading a release.
