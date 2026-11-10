@@ -53,6 +53,7 @@ trivy {
 | Flexible scan target | Explicit file or directory target — available in 0.1.2+ |
 | Directory exclusions | `skipDirs`, with automatic self-cache exclusion — available in 0.1.2+ |
 | Gradle configuration cache | Tested in CI; scan results re-run when the task executes |
+| Gradle Isolated Projects | Automated Gradle 9.9 multi-project tests on Windows/Linux (JDK 17/25); support declaration prepared for next release |
 
 ## Available tasks
 
