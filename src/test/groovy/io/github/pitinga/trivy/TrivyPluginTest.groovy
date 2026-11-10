@@ -30,6 +30,21 @@ ${extraConfiguration}
     }
 
     @Test
+    void loadsPluginVersionFromItsOwnPackagedMetadata() {
+        String version = TrivyTaskBase.pluginArtifactVersion()
+        assertNotEquals('unknown', version, 'The plugin artifact version must be embedded into its resources')
+        assertTrue(version ==~ /\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z0-9.-]+)?/, 'Unexpected plugin version: ' + version)
+    }
+
+    @Test
+    void extractsRealTrivyCliVersionFromStandardVersionOutput() {
+        assertEquals('0.76.2', TrivyTaskBase.parseTrivyCliVersion('Version: 0.76.2\\n'))
+        assertEquals('0.76.2', TrivyTaskBase.parseTrivyCliVersion('warning\\r\\nVersion: 0.76.2\\r\\n'))
+        assertEquals('unknown', TrivyTaskBase.parseTrivyCliVersion(''))
+        assertEquals('unknown', TrivyTaskBase.parseTrivyCliVersion('invalid output'))
+    }
+
+    @Test
     void registersInstallAndScanTasksWithoutDownloading() {
         writeProject()
         def result = runGradle('tasks', '--all')
