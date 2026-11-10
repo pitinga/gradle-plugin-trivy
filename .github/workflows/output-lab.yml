@@ -1,0 +1,47 @@
+name: Experimental Trivy output matrix (isolated branch)
+
+on:
+  push:
+    branches:
+      - experiment/output-formats-console-file
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lab:
+    name: ${{ matrix.os }} / Trivy report formats
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.9.0'
+          cache-provider: basic
+
+      - name: Test and validate experimental plugin
+        run: gradle clean test validatePlugins --no-daemon --warning-mode all --stacktrace
+
+      - name: Run six representative output strategies
+        shell: pwsh
+        run: |
+          pwsh -File ./scripts/Test-Trivy-Output.ps1 -Fast
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload output comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-output-lab-${{ matrix.os }}
+          path: lab-output/build/trivy-output-lab/
+          if-no-files-found: warn
+          retention-days: 7
