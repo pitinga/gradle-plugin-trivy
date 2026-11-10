@@ -45,42 +45,33 @@ ${extraConfiguration}
     }
 
     @Test
-    void keepsOriginalCustomDirectConsoleDefaults() {
+    void defaultsToNativeTableWithoutCustomTemplateOrOutputFile() {
         writeProject("""
 afterEvaluate {
     def scan = tasks.named('trivy').get()
     println 'LAB_FORMAT=' + scan.reportFormat.get()
-    println 'LAB_STRATEGY=' + scan.reportOutputStrategy.get()
     println 'LAB_FILE=' + scan.reportOutputFile.get()
 }
 """)
         def result = runGradle('trivy', '--dry-run')
-        assertTrue(result.output.contains('LAB_FORMAT=custom'))
-        assertTrue(result.output.contains('LAB_STRATEGY=direct'))
+        assertTrue(result.output.contains('LAB_FORMAT=table'))
         assertTrue(result.output.contains('LAB_FILE='))
         assertTrue(result.output.contains(':jar SKIPPED'))
     }
 
     @Test
-    void acceptsFileFormatAndStrategyThroughPowerShellCompatibleProperties() {
+    void acceptsNativeJsonAndOutputFileViaPowerShellGradleProperties() {
         writeProject("""
-trivy {
-    format = 'custom'
-    outputStrategy = 'direct'
-}
 afterEvaluate {
     def scan = tasks.named('trivy').get()
     println 'LAB_FORMAT=' + scan.reportFormat.get()
-    println 'LAB_STRATEGY=' + scan.reportOutputStrategy.get()
     println 'LAB_FILE=' + scan.reportOutputFile.get()
 }
 """)
         def result = runGradle('trivy', '--dry-run',
-            '-PtrivyFormat=json', '-PtrivyOutput=build/reports/result.json',
-            '-PtrivyOutputStrategy=capture')
+            '-PtrivyFormat=json', '-PtrivyOutput=build/reports/native-result.json')
         assertTrue(result.output.contains('LAB_FORMAT=json'))
-        assertTrue(result.output.contains('LAB_STRATEGY=capture'))
-        assertTrue(result.output.contains('LAB_FILE=build/reports/result.json'))
+        assertTrue(result.output.contains('LAB_FILE=build/reports/native-result.json'))
         assertTrue(result.output.contains(':jar SKIPPED'))
     }
 
