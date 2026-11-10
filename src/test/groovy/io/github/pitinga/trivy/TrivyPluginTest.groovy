@@ -38,8 +38,30 @@ ${extraConfiguration}
     }
 
     @Test
-    void scansProjectFilesystemByDefaultWithoutBuildingJar() {
+    void defaultsToRootfsOnBuiltJar() {
         writeProject("""
+afterEvaluate {
+    def scan = tasks.named('trivy').get()
+    println 'TRIVY_MODE=' + scan.scanMode.get()
+    println 'TRIVY_TARGET=' + scan.scanTarget.get()
+    println 'TRIVY_ARTIFACT=' + scan.artifactFile.get().asFile.name
+}
+""")
+        def result = runGradle('trivy', '--dry-run')
+        assertTrue(result.output.contains('TRIVY_MODE=rootfs'))
+        assertTrue(result.output.contains('TRIVY_TARGET='))
+        assertTrue(result.output.contains('TRIVY_ARTIFACT=test-app.jar'))
+        assertTrue(result.output.contains(':jar SKIPPED'), 'Default scan must build the application JAR')
+        assertTrue(result.output.contains(':trivy SKIPPED'))
+    }
+
+    @Test
+    void explicitFsDotScansProjectWithoutBuildingJar() {
+        writeProject("""
+trivy {
+    scanMode = 'fs'
+    target = '.'
+}
 afterEvaluate {
     def scan = tasks.named('trivy').get()
     println 'TRIVY_MODE=' + scan.scanMode.get()
@@ -50,11 +72,26 @@ afterEvaluate {
         assertTrue(result.output.contains('TRIVY_MODE=fs'))
         assertTrue(result.output.contains('TRIVY_TARGET=.'))
         assertTrue(result.output.contains(':trivy SKIPPED'))
-        assertFalse(result.output.contains(':jar SKIPPED'), 'A filesystem scan must not build the JAR')
+        assertFalse(result.output.contains(':jar SKIPPED'), 'Explicit filesystem scan must not build the JAR')
     }
 
     @Test
-    void acceptsExplicitJarTargetFromDsl() {
+    void explicitRootfsDotDoesNotBuildJar() {
+        writeProject("""
+trivy {
+    target = '.'
+}
+afterEvaluate {
+    println 'TRIVY_MODE=' + tasks.named('trivy').get().scanMode.get()
+}
+""")
+        def result = runGradle('trivy', '--dry-run')
+        assertTrue(result.output.contains('TRIVY_MODE=rootfs'))
+        assertFalse(result.output.contains(':jar SKIPPED'))
+    }
+
+    @Test
+    void acceptsExplicitJarTargetFromDslWithoutBuildingJar() {
         writeProject("""
 trivy {
     target = 'build/libs/app.jar'
@@ -63,12 +100,13 @@ afterEvaluate {
     println 'TRIVY_TARGET=' + tasks.named('trivy').get().scanTarget.get()
 }
 """)
-        def result = runGradle('help')
+        def result = runGradle('trivy', '--dry-run')
         assertTrue(result.output.contains('TRIVY_TARGET=build/libs/app.jar'))
+        assertFalse(result.output.contains(':jar SKIPPED'))
     }
 
     @Test
-    void commandLineTargetOverridesDslTarget() {
+    void commandLineOverridesModeAndTarget() {
         writeProject("""
 trivy {
     target = 'build/libs/from-dsl.jar'
@@ -79,9 +117,10 @@ afterEvaluate {
     println 'TRIVY_TARGET=' + scan.scanTarget.get()
 }
 """)
-        def result = runGradle('help', '-PtrivyTarget=build/libs/from-cli.jar')
+        def result = runGradle('trivy', '--dry-run', '-PtrivyTarget=.', '-PtrivyScanMode=fs')
         assertTrue(result.output.contains('TRIVY_MODE=fs'))
-        assertTrue(result.output.contains('TRIVY_TARGET=build/libs/from-cli.jar'))
+        assertTrue(result.output.contains('TRIVY_TARGET=.'))
         assertFalse(result.output.contains('TRIVY_TARGET=build/libs/from-dsl.jar'))
+        assertFalse(result.output.contains(':jar SKIPPED'))
     }
 }
