@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload output comparison evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-output-lab-${{ matrix.os }}
           path: lab-output/build/trivy-output-lab/
