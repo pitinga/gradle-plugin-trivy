@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2-SNAPSHOT — Unreleased
+
+- Default `trivy.version` to `latest`, resolving the latest stable official GitHub release when a download is needed.
+- Preserve `preferInstalled = true`: use an existing Trivy executable from PATH first, without querying or downloading a release.
+- Preserve the ability to pin `trivy.version` to a specific release and set `preferInstalled = false` to force cache/download resolution.
+- Add a regression test for these defaults.
+
 ## 0.1.1 — 2026-11-06
 
 Gradle 9.9.0 compatibility update.
