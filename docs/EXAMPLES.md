@@ -11,7 +11,7 @@ Add the plugin to your **existing** Spring Boot build:
 ~~~groovy
 plugins {
     id 'org.springframework.boot' version 'YOUR_EXISTING_SPRING_BOOT_VERSION'
-    id 'io.github.pitinga.trivy' version '0.1.2'
+    id 'io.github.pitinga.trivy' version '0.1.3'
 }
 ~~~
 
@@ -26,7 +26,7 @@ The plugin runs `bootJar`, installs/locates Trivy, and scans the resulting JAR w
 ~~~groovy
 plugins {
     id 'java'
-    id 'io.github.pitinga.trivy' version '0.1.2'
+    id 'io.github.pitinga.trivy' version '0.1.3'
 }
 ~~~
 
