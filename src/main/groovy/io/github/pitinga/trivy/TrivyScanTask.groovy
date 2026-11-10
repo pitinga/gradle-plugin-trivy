@@ -3,9 +3,14 @@ package io.github.pitinga.trivy
 import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
@@ -14,6 +19,12 @@ import org.gradle.work.DisableCachingByDefault
 abstract class TrivyScanTask extends TrivyTaskBase {
     @Inject
     abstract ExecOperations getExecOperations()
+
+    // Optional only for explicit target scans; by default this is bootJar/jar.
+    @Optional
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    abstract RegularFileProperty getArtifactFile()
 
     @Internal
     abstract DirectoryProperty getWorkingDirectory()
@@ -65,11 +76,16 @@ Status: CLEAN - no vulnerabilities found
         }
 
         String requestedTarget = scanTarget.get()
-        if (requestedTarget == null || !requestedTarget.trim()) {
-            throw new GradleException('trivy.target must be a non-empty file or directory path')
+        boolean defaultArtifact = !requestedTarget?.trim()
+        File baseDir = workingDirectory.get().asFile
+        if (defaultArtifact) {
+            File archive = artifactFile.orNull?.asFile
+            if (archive == null) {
+                throw new GradleException('No bootJar/jar task found. Apply a Java plugin, or configure trivy.target.')
+            }
+            requestedTarget = archive.absolutePath
         }
 
-        File baseDir = workingDirectory.get().asFile
         File targetFile = new File(requestedTarget)
         if (!targetFile.isAbsolute()) {
             targetFile = new File(baseDir, requestedTarget)
@@ -80,6 +96,10 @@ Status: CLEAN - no vulnerabilities found
         }
         if (!targetFile.isFile() && !targetFile.isDirectory()) {
             throw new GradleException('Trivy scan target is not a regular file or directory: ' + targetFile.absolutePath)
+        }
+        if (mode == 'fs' && targetFile.isFile() && targetFile.name.toLowerCase(Locale.ROOT).endsWith('.jar')) {
+            logger.warn('Trivy fs may not detect vulnerabilities inside compiled JARs. ' +
+                'Use trivy rootfs for a packaged JAR, or fs for project source/dependency metadata.')
         }
 
         File executable = resolveExecutable()
@@ -92,10 +112,10 @@ Status: CLEAN - no vulnerabilities found
         ]
         if (severity.get().trim()) arguments.addAll(['--severity', severity.get().trim()])
         if (ignoreUnfixed.get()) arguments.add('--ignore-unfixed')
-        // Leave relative paths relative to the Gradle project directory, matching "trivy fs .".
+        // For explicit targets, keep relative paths relative to the Gradle project directory.
         arguments.add(requestedTarget)
 
-        logger.lifecycle('Scanning target with Trivy (' + mode + '): ' + targetFile.absolutePath)
+        logger.lifecycle((defaultArtifact ? 'Scanning artifact with Trivy: ' : 'Scanning target with Trivy (' + mode + '): ') + targetFile.absolutePath)
         execOperations.exec { spec ->
             spec.executable = executable.absolutePath
             spec.args(arguments)
