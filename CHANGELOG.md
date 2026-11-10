@@ -10,6 +10,9 @@
 - Add optional `trivy.target` to scan an existing file or directory (including `.`), with `-PtrivyTarget=...` CLI override; explicit targets do not implicitly build a JAR.
 - Allow `trivy fs .` explicitly with `scanMode = 'fs'`, `target = '.'` (or `-PtrivyScanMode=fs -PtrivyTarget=.`).
 - Include Windows/Linux integration and unit tests for the default built JAR and explicit project-directory scans.
+- Add `trivy.skipDirs` list plus a `-PtrivySkipDirs=dir1,dir2` override for Trivy `--skip-dirs` flags.
+- Automatically exclude plugin-managed Trivy executable caches contained within an explicit directory scan target, avoiding self-scans; leave the original default JAR scan unchanged.
+- Add unit and Windows/Linux integration tests for directory exclusions, CLI precedence, glob patterns and cache exclusion.
 
 ## 0.1.1 — 2026-11-06
 
