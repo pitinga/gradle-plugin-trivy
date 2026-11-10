@@ -71,3 +71,8 @@ jobs:
           if (-not $log.Contains('Skipping Trivy directories: generated-cache, build/tmp, ./.gradle/trivy')) {
             throw 'Expected --skip-dirs arguments and automatic Trivy cache exclusion were missing'
           }
+
+      - name: Real JAR scan with Gradle Isolated Projects
+        run: gradle -p smoke trivy --isolated-projects --no-daemon --warning-mode all --stacktrace
+      - name: Repeat real scan with Isolated Projects configuration cache
+        run: gradle -p smoke trivy --isolated-projects --no-daemon --warning-mode all --stacktrace
