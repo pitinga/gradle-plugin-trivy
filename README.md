@@ -4,15 +4,15 @@
 
 [**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
 
-> **Current published release:** `0.1.2` on the Gradle Plugin Portal. Version `0.1.1` remains available as an earlier release. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
+> **Latest release:** `0.1.3` with Gradle Isolated Projects compatibility (publication workflow in progress). Versions `0.1.2` and `0.1.1` remain available. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
 
-## Quick start — version 0.1.2
+## Quick start — version 0.1.3
 
 Add the plugin to your existing **Groovy DSL** `build.gradle`:
 
 ~~~groovy
 plugins {
-    id 'io.github.pitinga.trivy' version '0.1.2'
+    id 'io.github.pitinga.trivy' version '0.1.3'
 }
 ~~~
 
@@ -53,7 +53,7 @@ trivy {
 | Flexible scan target | Explicit file or directory target — available in 0.1.2+ |
 | Directory exclusions | `skipDirs`, with automatic self-cache exclusion — available in 0.1.2+ |
 | Gradle configuration cache | Tested in CI; scan results re-run when the task executes |
-| Gradle Isolated Projects | Automated Gradle 9.9 multi-project tests on Windows/Linux (JDK 17/25); support declaration prepared for next release |
+| Gradle Isolated Projects | Declared compatible in 0.1.3; Gradle 9.9 multi-project tests on Windows/Linux (JDK 17/25) |
 
 ## Available tasks
 
