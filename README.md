@@ -4,7 +4,7 @@
 
 [**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
 
-> **Current release:** `0.1.2` (pending the publication workflow). Version `0.1.1` remains available on the Plugin Portal. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
+> **Current published release:** `0.1.2` on the Gradle Plugin Portal. Version `0.1.1` remains available as an earlier release. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
 
 ## Quick start — version 0.1.2
 
@@ -97,9 +97,9 @@ Our Java tests found a significant coverage difference:
 
 A `num=0` language-specific files message or an empty report does **not** establish that an application is secure.
 
-In the development branch, `target = '.'` does **not** build a JAR automatically. To include up-to-date build outputs, explicitly run `bootJar` or `jar` first.
+In version 0.1.2+, `target = '.'` does **not** build a JAR automatically. To include up-to-date build outputs, explicitly run `bootJar` or `jar` first.
 
-## Additional scan options — development branch only
+## Additional scan options — version 0.1.2+
 
 The following examples require **0.1.2 or later**. They are not supported by version 0.1.1.
 
@@ -109,7 +109,7 @@ The following examples require **0.1.2 or later**. They are not supported by ver
 .\gradlew bootJar trivy '-PtrivyTarget=.'
 ~~~
 
-This inspects existing supported files in the project, including generated JARs. The development plugin automatically excludes its own cached Trivy executable when the installation directory is within the scan target.
+This inspects existing supported files in the project, including generated JARs. The plugin automatically excludes its own cached Trivy executable when the installation directory is within the scan target.
 
 ### Use fs to scan project metadata
 
