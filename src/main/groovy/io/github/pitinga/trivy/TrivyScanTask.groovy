@@ -15,7 +15,6 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
 import java.nio.file.Files
-import java.nio.charset.StandardCharsets
 
 @DisableCachingByDefault(because = 'Vulnerability results depend on continuously updated external databases')
 abstract class TrivyScanTask extends TrivyTaskBase {
@@ -54,30 +53,6 @@ abstract class TrivyScanTask extends TrivyTaskBase {
 
     @Input
     abstract Property<String> getReportOutputFile()
-
-    @Input
-    abstract Property<String> getReportOutputStrategy()
-
-    // ASCII-only output avoids Unicode box-drawing corruption in Eclipse on Windows.
-    private static final String CONSOLE_TEMPLATE = '''
-{{ range . -}}
-{{ if .Vulnerabilities -}}
-Target: {{ .Target }}
-Type: {{ .Type }}
-
-{{ range .Vulnerabilities -}}
-- [{{ .Severity }}] {{ .VulnerabilityID }} | {{ .PkgName }} {{ .InstalledVersion }}
-  {{ .Title }}
-  Fixed version: {{ if .FixedVersion }}{{ .FixedVersion }}{{ else }}not available{{ end }}
-
-{{ end -}}
-{{ else -}}
-Target: {{ .Target }}
-Status: CLEAN - no vulnerabilities found
-
-{{ end -}}
-{{ end -}}
-'''
 
     /**
      * Directory scans may include a locally cached Trivy binary, which is not part
@@ -147,9 +122,8 @@ Status: CLEAN - no vulnerabilities found
                 'Use trivy rootfs for a packaged JAR, or fs for project source/dependency metadata.')
         }
 
-        // Parse all options before downloading/running an external executable.
+        // Validate format and destination before launching/downloading anything.
         String chosenFormat = TrivyReportOutput.checkedFormat(reportFormat.get())
-        String strategy = TrivyReportOutput.checkedStrategy(reportOutputStrategy.get())
         File userReport = TrivyReportOutput.destination(baseDir, reportOutputFile.get())
         if (userReport != null && userReport.canonicalFile == targetFile.canonicalFile) {
             throw new GradleException('Trivy outputFile must not overwrite the scanned target: ' + targetFile.absolutePath)
@@ -158,11 +132,9 @@ Status: CLEAN - no vulnerabilities found
         File executable = resolveExecutable()
         logVersionHeader(executable)
         List<String> arguments = [
-            mode,
-            '--scanners', scanners.get(),
-            '--skip-version-check', '--no-progress'
+            mode, '--scanners', scanners.get(), '--skip-version-check', '--no-progress'
         ]
-        arguments.addAll(TrivyReportOutput.formatArguments(chosenFormat, CONSOLE_TEMPLATE))
+        arguments.addAll(TrivyReportOutput.formatArguments(chosenFormat))
         arguments.addAll(['--exit-code', failOnVulnerability.get() ? '1' : '0'])
         if (severity.get().trim()) arguments.addAll(['--severity', severity.get().trim()])
         if (ignoreUnfixed.get()) arguments.add('--ignore-unfixed')
@@ -176,77 +148,66 @@ Status: CLEAN - no vulnerabilities found
         }
         logger.lifecycle((defaultArtifact ? 'Scanning artifact with Trivy: ' :
             'Scanning target with Trivy (' + mode + '): ') + targetFile.absolutePath)
-        logger.lifecycle('Report output: ' + chosenFormat + ' / ' + strategy +
-            (userReport == null ? ' / console' : ' / ' + userReport.absolutePath))
+        logger.lifecycle('Report format: ' + chosenFormat +
+            (userReport == null ? ' (console)' : ' | ' + userReport.absolutePath))
 
-        // Important: the original custom/direct/no-file path is deliberately the
-        // same as the published plugin. Alternative paths are experiments.
-        if (strategy == 'direct') {
-            if (userReport != null) {
-                ensureParentDirectory(userReport)
-                arguments.addAll(['--output', userReport.absolutePath])
+        if (userReport != null) {
+            // Preserve native Trivy UTF-8 reports exactly; no console conversion.
+            ensureParentDirectory(userReport)
+            Files.deleteIfExists(userReport.toPath())
+            arguments.addAll(['--output', userReport.absolutePath, requestedTarget])
+            execOperations.exec { spec ->
+                spec.executable = executable.absolutePath
+                spec.args(arguments)
+                spec.workingDir = baseDir
             }
+            if (!userReport.isFile()) {
+                throw new GradleException('Trivy did not create the report: ' + userReport.absolutePath)
+            }
+            logger.lifecycle('Report saved: ' + userReport.absolutePath)
+            return
+        }
+
+        // Unlike Windows codepage changes, a safe ASCII console cannot break
+        // Eclipse, Gradle Tooling API, PowerShell, cmd, or another user's terminal.
+        // The Trivy report is still rendered by Trivy itself, not by a template.
+        // Gradle's stdout transport may be UTF-8 while the Windows console is CP850.
+        boolean windows = System.getProperty('os.name', '').toLowerCase(Locale.ROOT).contains('win')
+        if (!windows) {
+            // On platforms where UTF-8 is the usual console encoding, use exact
+            // native table/json output without intermediary processing.
             arguments.add(requestedTarget)
             execOperations.exec { spec ->
                 spec.executable = executable.absolutePath
                 spec.args(arguments)
                 spec.workingDir = baseDir
             }
-            if (userReport != null) logger.lifecycle('Report saved: ' + userReport.absolutePath)
             return
         }
 
-        File report = userReport
-        boolean temporary = false
-        if (strategy == 'file' && report == null) {
-            report = Files.createTempFile('gradle-trivy-output-', chosenFormat == 'json' ? '.json' : '.txt').toFile()
-            temporary = true
-        }
-
+        // Windows: let Trivy render its native format to a temporary UTF-8 file.
+        // Read it back and present a codepage-independent ASCII representation.
+        // Only the *console* text is adapted; on-disk reports are always original.
+        File temporary = Files.createTempFile('gradle-trivy-report-',
+            chosenFormat == 'json' ? '.json' : '.txt').toFile()
         try {
-            ByteArrayOutputStream captured = new ByteArrayOutputStream()
-            if (strategy == 'file') {
-                ensureParentDirectory(report)
-                // Prevent stale output from being mistaken for this scan's report.
-                Files.deleteIfExists(report.toPath())
-                arguments.addAll(['--output', report.absolutePath])
-            }
-            arguments.add(requestedTarget)
-
+            arguments.addAll(['--output', temporary.absolutePath, requestedTarget])
             def result = execOperations.exec { spec ->
                 spec.executable = executable.absolutePath
                 spec.args(arguments)
                 spec.workingDir = baseDir
                 spec.ignoreExitValue = true
-                if (strategy != 'file') spec.standardOutput = captured
             }
-
-            byte[] bytes = strategy == 'file' ?
-                (report.isFile() ? Files.readAllBytes(report.toPath()) : new byte[0]) :
-                captured.toByteArray()
-
-            if (strategy != 'file' && userReport != null) {
-                TrivyReportOutput.saveExactBytes(userReport, bytes)
+            if (temporary.isFile()) {
+                String nativeText = TrivyReportOutput.fromUtf8(Files.readAllBytes(temporary.toPath()))
+                String portable = TrivyReportOutput.portableConsole(chosenFormat, nativeText)
+                if (!portable.isEmpty()) logger.lifecycle(portable)
             }
-            if (userReport != null && (strategy != 'file' || userReport.isFile())) {
-                logger.lifecycle('Report saved: ' + userReport.absolutePath)
-            }
-
-            String text = TrivyReportOutput.fromUtf8(bytes)
-            if (strategy == 'ascii' && chosenFormat == 'table') {
-                text = TrivyReportOutput.toAsciiTable(text)
-            }
-            if (!text.isEmpty()) logger.lifecycle(text)
-
             if (result.exitValue != 0) {
-                throw new GradleException('Trivy scan exited with code ' + result.exitValue +
-                    (userReport != null ? '; report: ' + userReport.absolutePath : ''))
-            }
-            if (strategy == 'file' && !report.isFile()) {
-                throw new GradleException('Trivy did not create the expected report: ' + report.absolutePath)
+                throw new GradleException('Trivy scan exited with code ' + result.exitValue)
             }
         } finally {
-            if (temporary && report != null) Files.deleteIfExists(report.toPath())
+            Files.deleteIfExists(temporary.toPath())
         }
     }
 
