@@ -47,9 +47,11 @@ jobs:
         run: gradle -p smoke trivyInstall --no-daemon --stacktrace --warning-mode all --configuration-cache
       - name: Reuse configuration cache without project access warnings
         run: gradle -p smoke trivyInstall --no-daemon --warning-mode all --configuration-cache
-      - name: Scan project directory with default trivy fs .
+      - name: Default scan builds JAR and uses Trivy rootfs
         run: gradle -p smoke trivy --no-daemon --warning-mode all --configuration-cache --stacktrace
-      - name: Build JAR for explicit single-file scan
-        run: gradle -p smoke jar --no-daemon --warning-mode all --configuration-cache --stacktrace
-      - name: Scan generated JAR via -PtrivyTarget with Trivy fs
+      - name: Explicit project directory scan using trivy fs .
+        run: gradle -p smoke trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.' --no-daemon --warning-mode all --configuration-cache --stacktrace
+      - name: Explicit project directory scan using trivy rootfs .
+        run: gradle -p smoke trivy '-PtrivyTarget=.' --no-daemon --warning-mode all --configuration-cache --stacktrace
+      - name: Explicit single JAR scan with rootfs
         run: gradle -p smoke trivy '-PtrivyTarget=build/libs/trivy-smoke.jar' --no-daemon --warning-mode all --configuration-cache --stacktrace
