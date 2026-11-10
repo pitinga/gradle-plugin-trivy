@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) | [Configuration](CONFIGURATION.md) | [Troubleshooting](TROUBLESHOOTING.md)
 
-**Version labels matter:** published `0.1.1` users can run the default JAR scan and configure existing extension fields. `target`, `skipDirs` and scan-specific `-P` overrides belong to **0.1.2+**, used through the composite-build instructions in the README.
+**Version labels matter:** published `0.1.1` users can run the default JAR scan and configure existing extension fields. `target`, `skipDirs` and scan-specific `-P` overrides are available in **0.1.2+** directly from the Gradle Plugin Portal.
 
 ## 1. Scan a Spring Boot application (published 0.1.1+)
 
@@ -11,7 +11,7 @@ Add the plugin to your **existing** Spring Boot build:
 ~~~groovy
 plugins {
     id 'org.springframework.boot' version 'YOUR_EXISTING_SPRING_BOOT_VERSION'
-    id 'io.github.pitinga.trivy' version '0.1.1'
+    id 'io.github.pitinga.trivy' version '0.1.2'
 }
 ~~~
 
@@ -26,7 +26,7 @@ The plugin runs `bootJar`, installs/locates Trivy, and scans the resulting JAR w
 ~~~groovy
 plugins {
     id 'java'
-    id 'io.github.pitinga.trivy' version '0.1.1'
+    id 'io.github.pitinga.trivy' version '0.1.2'
 }
 ~~~
 
@@ -62,9 +62,9 @@ trivy {
 }
 ~~~
 
-This setting bypasses the installed binary in PATH. The Gradle plugin version `0.1.1` is distinct from the Trivy CLI version.
+This setting bypasses the installed binary in PATH. The Gradle plugin version `0.1.2` is distinct from the Trivy CLI version.
 
-## 5. Scan everything under the project with rootfs (development only)
+## 5. Scan everything under the project with rootfs (0.1.2+)
 
 ~~~powershell
 .\gradlew bootJar trivy '-PtrivyTarget=.'
@@ -72,7 +72,7 @@ This setting bypasses the installed binary in PATH. The Gradle plugin version `0
 
 Here `bootJar` is explicit, because when `target` is set the plugin will **not** build an artifact automatically. This mode can find vulnerabilities in pre-existing generated JARs and other supported binaries. It automatically excludes the plugin-managed Trivy cache if present inside the scan directory.
 
-## 6. Scan project metadata with fs (development only)
+## 6. Scan project metadata with fs (0.1.2+)
 
 ~~~powershell
 .\gradlew trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.'
@@ -80,7 +80,7 @@ Here `bootJar` is explicit, because when `target` is set the plugin will **not**
 
 In some Java projects this identifies zero language-specific files, even though the built JAR contains vulnerable dependencies. For packaged Java dependencies, prefer the default `rootfs` JAR scan.
 
-## 7. Scan a specific JAR (development only)
+## 7. Scan a specific JAR (0.1.2+)
 
 ~~~powershell
 .\gradlew bootJar trivy '-PtrivyTarget=build/libs/app.jar'
@@ -88,7 +88,7 @@ In some Java projects this identifies zero language-specific files, even though 
 
 Substitute your actual artifact filename. The plugin uses `rootfs` by default. For an absolute path, pass the full Windows or Linux path in the quoted `-P` argument.
 
-## 8. Exclude caches or tooling (development only)
+## 8. Exclude caches or tooling (0.1.2+)
 
 ~~~groovy
 trivy {
