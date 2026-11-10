@@ -6,7 +6,7 @@ This guide distinguishes plugin **0.1.1** from the **0.1.2** release. Applying v
 
 ## Groovy DSL configuration
 
-The following block describes the **0.1.2 release**:
+The following block describes **version 0.1.2**:
 
 ~~~groovy
 trivy {
@@ -38,7 +38,7 @@ trivy {
 
 In **published 0.1.1**, do not configure `target` or `skipDirs`: these properties are not available. You *may* explicitly configure `version = 'latest'` in 0.1.1, but it is not the default there.
 
-## Modes and targets (development version)
+## Modes and targets (0.1.2+)
 
 | Configuration | Equivalent Trivy command | Builds a JAR? | Notes |
 | --- | --- | --- | --- |
