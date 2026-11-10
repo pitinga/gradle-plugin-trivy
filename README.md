@@ -4,15 +4,15 @@
 
 [**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
 
-> **Version status:** `0.1.1` is the **published** version on the Gradle Plugin Portal. The `main` branch contains **unreleased `0.1.2-SNAPSHOT`** improvements. Features marked **development only** are not available to consumers of 0.1.1.
+> **Current release:** `0.1.2` (pending the publication workflow). Version `0.1.1` remains available on the Plugin Portal. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
 
-## Quick start — published version 0.1.1
+## Quick start — version 0.1.2
 
 Add the plugin to your existing **Groovy DSL** `build.gradle`:
 
 ~~~groovy
 plugins {
-    id 'io.github.pitinga.trivy' version '0.1.1'
+    id 'io.github.pitinga.trivy' version '0.1.2'
 }
 ~~~
 
@@ -50,8 +50,8 @@ trivy {
 | Cache reuse | Shared Gradle user home; fallback to project cache on permission errors |
 | Cross-platform | Windows x64; Linux x64/ARM64; macOS x64/ARM64 installer support |
 | Vulnerability reporting | ASCII-friendly CVE list showing severity, package, installed/fixed version and title |
-| Flexible scan target | Explicit file or directory target — **development only** |
-| Directory exclusions | `skipDirs`, with automatic self-cache exclusion — **development only** |
+| Flexible scan target | Explicit file or directory target — available in 0.1.2+ |
+| Directory exclusions | `skipDirs`, with automatic self-cache exclusion — available in 0.1.2+ |
 | Gradle configuration cache | Tested in CI; scan results re-run when the task executes |
 
 ## Available tasks
@@ -67,7 +67,7 @@ Both tasks are available from Eclipse Buildship's **Gradle Tasks** view.
 
 Options are configured inside `trivy { ... }` in your `build.gradle`.
 
-| Property | Published 0.1.1 default | Development default | Description |
+| Property | Version 0.1.1 default | Version 0.1.2 default | Description |
 | --- | --- | --- | --- |
 | `version` | `'0.76.2'` | `'latest'` | **Trivy executable** version used when downloading |
 | `autoInstall` | `true` | `true` | Download if missing |
@@ -101,7 +101,7 @@ In the development branch, `target = '.'` does **not** build a JAR automatically
 
 ## Additional scan options — development branch only
 
-The following examples require source checkout of **`main` (0.1.2-SNAPSHOT)**, not published 0.1.1.
+The following examples require **0.1.2 or later**. They are not supported by version 0.1.1.
 
 ### Scan the whole project with rootfs
 
@@ -145,7 +145,7 @@ The equivalent one-off PowerShell command is:
 
 See [Usage examples](docs/EXAMPLES.md) for Eclipse, Spring Boot, Java, GitHub Actions and Azure DevOps.
 
-## Trying the development version before publication
+## Testing the plugin from source
 
 Clone this repository next to your application checkout. In the consuming project's `settings.gradle`, before other settings:
 
@@ -163,7 +163,7 @@ plugins {
 }
 ~~~
 
-Do not also declare the published version for this plugin. Refresh the Gradle project in Eclipse or rerun the Gradle wrapper. To return to the Portal release, remove the composite-build configuration and apply `version '0.1.1'`.
+Do not also declare the published version for this plugin. Refresh the Gradle project in Eclipse or rerun the Gradle wrapper. To return to the Portal release, remove the composite-build configuration and apply `version '0.1.2'` after it is available in the Portal.
 
 ## Trivy installation and cache
 
