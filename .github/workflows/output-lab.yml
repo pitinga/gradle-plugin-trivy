@@ -1,4 +1,4 @@
-name: Experimental Trivy output matrix (isolated branch)
+name: Experimental native Trivy output without terminal changes
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
       - name: Test and validate experimental plugin
         run: gradle clean test validatePlugins --no-daemon --warning-mode all --stacktrace
 
-      - name: Run all ten output and encoding strategies
+      - name: Verify native table/JSON and automatic Windows codepage-safe console
         shell: pwsh
         run: |
           pwsh -File ./scripts/Test-Trivy-Output.ps1
