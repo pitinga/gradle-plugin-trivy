@@ -5,6 +5,14 @@ import static org.junit.jupiter.api.Assertions.*
 
 class TrivyInstallerTest {
     @Test
+    void usesLatestStableTrivyByDefaultWhilePreferringPath() {
+        def settings = new TrivyExtension()
+        assertEquals('latest', settings.version)
+        assertTrue(settings.preferInstalled)
+        assertTrue(settings.autoInstall)
+    }
+
+    @Test
     void correctOfficialAssetNames() {
         assertEquals('trivy_0.76.2_windows-64bit.zip', TrivyInstaller.archiveName('0.76.2', 'windows-amd64'))
         assertEquals('trivy_0.76.2_Linux-64bit.tar.gz', TrivyInstaller.archiveName('0.76.2', 'linux-amd64'))
