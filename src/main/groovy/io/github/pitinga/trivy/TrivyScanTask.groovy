@@ -199,9 +199,14 @@ abstract class TrivyScanTask extends TrivyTaskBase {
                 spec.ignoreExitValue = true
             }
             if (temporary.isFile()) {
-                String nativeText = TrivyReportOutput.fromUtf8(Files.readAllBytes(temporary.toPath()))
-                String portable = TrivyReportOutput.portableConsole(chosenFormat, nativeText)
-                if (!portable.isEmpty()) logger.lifecycle(portable)
+                // Stream the native Trivy report line-by-line instead of holding a
+                // potentially large JSON/table report in the Gradle daemon heap.
+                Files.newBufferedReader(temporary.toPath(), java.nio.charset.StandardCharsets.UTF_8).withCloseable { reader ->
+                    String line
+                    while ((line = reader.readLine()) != null) {
+                        logger.lifecycle(TrivyReportOutput.portableConsole(chosenFormat, line))
+                    }
+                }
             }
             if (result.exitValue != 0) {
                 throw new GradleException('Trivy scan exited with code ' + result.exitValue)
