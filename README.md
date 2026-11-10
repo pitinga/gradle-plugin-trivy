@@ -1,5 +1,9 @@
 # Gradle Trivy Plugin
 
+> **EXPERIMENTAL BRANCH: native Trivy output, no terminal changes.** In this branch (not the published v0.1.3), `trivy` uses Trivy's native `table` report by default, supports `json` and `-PtrivyOutput=...`, and automatically renders a codepage-safe ASCII view in Windows consoles. The custom template and `outputStrategy` are removed **only from this branch**. See [OUTPUT-LAB](docs/OUTPUT-LAB.md) for tests and details. The `main` branch and published plugin are unchanged.
+
+---
+
 **Automated vulnerability scanning for Java and Spring Boot builds.** Build your application JAR, locate or securely install [Trivy](https://trivy.dev/), and display vulnerability findings directly in Gradle, Eclipse or CI/CD logs.
 
 [**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
