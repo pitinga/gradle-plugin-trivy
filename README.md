@@ -57,7 +57,7 @@ Run from Eclipse Gradle Tasks or from a terminal to scan the project directory:
 Scan a specific JAR instead (build it first):
 
 ~~~powershell
-.\gradlew bootJar trivy -PtrivyTarget=build/libs/app.jar
+.\gradlew bootJar trivy '-PtrivyTarget=build/libs/app.jar'
 ~~~
 
 Replace `app.jar` with the actual file name. For plain Java projects, use `jar` instead of `bootJar`. The plugin does **not** automatically build the JAR when scanning the project or an explicit target.
@@ -101,10 +101,10 @@ The default mode is now `fs`, appropriate for scanning local projects. The plain
 Override the target directly from PowerShell without changing the build script:
 
 ~~~powershell
-.\gradlew trivy -PtrivyTarget=.\build\libs\app.jar
+.\gradlew trivy '-PtrivyTarget=.\build\libs\app.jar'
 ~~~
 
-`-PtrivyTarget` takes precedence over `trivy { target = '...' }`. Paths are resolved relative to the Gradle project directory; absolute paths also work. You may optionally override the mode with `-PtrivyScanMode=rootfs`.
+On Windows PowerShell, quote the complete `-P` argument to keep the JAR path intact. `-PtrivyTarget` takes precedence over `trivy { target = '...' }`. Paths are resolved relative to the Gradle project directory; absolute paths also work. You may optionally override the mode with `-PtrivyScanMode=rootfs`.
 
 **Important:** when preferInstalled=true, a Trivy binary from PATH takes precedence even if its version differs from version. Set preferInstalled=false to force the specified cached/downloaded version.
 
