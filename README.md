@@ -1,12 +1,13 @@
 # Gradle Trivy Plugin
 
-A lightweight Gradle plugin that builds the JAR (including Spring Boot's bootJar), locates or installs Trivy, and scans the generated artifact. Designed for **Windows/Eclipse**, Linux and macOS.
+A lightweight Gradle plugin that locates or installs Trivy and scans the **project directory by default** (`trivy fs .`), with an optional target for scanning a specific file such as a JAR. Designed for **Windows/Eclipse**, Linux and macOS.
 
 **Published version:** `0.1.1` on the Gradle Plugin Portal. **Development branch:** `0.1.2-SNAPSHOT` (unreleased).
 
 ## Features
 
-- Runs the existing bootJar task (preferred) or jar task before scanning.
+- Runs `trivy fs .` by default, scanning the current Gradle project's directory without building a JAR.
+- Supports scanning any existing file or directory using `trivy.target` or the PowerShell/Gradle argument `-PtrivyTarget=...`.
 - Uses Trivy already present on PATH, unless preferInstalled is disabled.
 - If absent, resolves the **latest stable Trivy release by default**, downloads the official archive for the host OS/CPU and checks SHA-256 against the official checksums file.
 - First tries the shared Gradle user home cache (normally ~/.gradle/trivy); on **permission errors** falls back to the root project's .gradle/trivy.
@@ -47,11 +48,19 @@ plugins {
 
 If Spring Boot is already applied, add only the Trivy plugin ID. It also works with the standard Gradle java plugin.
 
-Run from Eclipse Gradle Tasks or from a terminal:
+Run from Eclipse Gradle Tasks or from a terminal to scan the project directory:
 
 ~~~powershell
 .\gradlew trivy
 ~~~
+
+Scan a specific JAR instead (build it first):
+
+~~~powershell
+.\gradlew bootJar trivy -PtrivyTarget=build/libs/app.jar
+~~~
+
+Replace `app.jar` with the actual file name. For plain Java projects, use `jar` instead of `bootJar`. The plugin does **not** automatically build the JAR when scanning the project or an explicit target.
 
 To download or resolve Trivy without scanning:
 
@@ -78,7 +87,8 @@ trivy {
     version = 'latest'               // latest stable Trivy release for downloads/cache (main branch)
     autoInstall = true               // download if missing
     preferInstalled = true           // prefer an installed PATH binary regardless of its version
-    scanMode = 'rootfs'              // rootfs or fs
+    scanMode = 'fs'                  // fs (default); rootfs remains available
+    target = '.'                     // project directory (default) or existing file/directory
     scanners = 'vuln'
     severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     ignoreUnfixed = false
@@ -86,11 +96,19 @@ trivy {
 }
 ~~~
 
-The default mode and vulnerability template preserve the original manual task. Scans are intentionally re-executed to pick up updated vulnerability information.
+The default mode is now `fs`, appropriate for scanning local projects. The plain-ASCII vulnerability report is preserved from the original manual task. Scans are intentionally re-executed to pick up updated vulnerability information.
+
+Override the target directly from PowerShell without changing the build script:
+
+~~~powershell
+.\gradlew trivy -PtrivyTarget=.\build\libs\app.jar
+~~~
+
+`-PtrivyTarget` takes precedence over `trivy { target = '...' }`. Paths are resolved relative to the Gradle project directory; absolute paths also work. You may optionally override the mode with `-PtrivyScanMode=rootfs`.
 
 **Important:** when preferInstalled=true, a Trivy binary from PATH takes precedence even if its version differs from version. Set preferInstalled=false to force the specified cached/downloaded version.
 
-The plugin scans the built JAR, not every dependency or artifact in a multi-project build. Apply it to each relevant project. Use the existing Trivy command directly for other types of scans.
+By default, the plugin scans files in the Gradle project directory, including dependency metadata that Trivy supports; it does not automatically resolve or build all Gradle dependencies. For inspection of the exact packaged libraries, build the application JAR and specify it as the target. Apply the plugin to each relevant project in a multi-project build.
 
 ## Installer cache policy
 
@@ -109,7 +127,7 @@ The two caches are different from Trivy's vulnerability database cache, which Tr
 | Task | Purpose |
 | --- | --- |
 | trivyInstall | Locate or install Trivy, without building or scanning |
-| trivy | Build bootJar / jar; install Trivy if necessary; scan the resulting JAR |
+| trivy | Install Trivy if necessary; scan the project directory by default or an explicit target |
 
 ## Development
 
