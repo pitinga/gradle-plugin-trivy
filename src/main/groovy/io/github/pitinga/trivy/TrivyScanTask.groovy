@@ -4,6 +4,7 @@ import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
@@ -34,6 +35,9 @@ abstract class TrivyScanTask extends TrivyTaskBase {
 
     @Input
     abstract Property<String> getScanTarget()
+
+    @Input
+    abstract ListProperty<String> getSkipDirs()
 
     @Input
     abstract Property<String> getScanners()
@@ -67,6 +71,40 @@ Status: CLEAN - no vulnerabilities found
 {{ end -}}
 {{ end -}}
 '''
+
+    /**
+     * Directory scans may include a locally cached Trivy binary, which is not part
+     * of the application being scanned. Skip only caches physically inside the
+     * requested directory, and keep user-configured glob expressions unchanged.
+     * A normal single-JAR scan does not gain any implicit exclusions.
+     */
+    static List<String> effectiveSkipDirs(File target, File projectDir, File rootProjectDir,
+                                           File gradleHomeDir, List<String> configured) {
+        LinkedHashSet<String> excludes = new LinkedHashSet<>()
+        (configured ?: []).each { String value ->
+            if (value?.trim()) excludes.add(value.trim())
+        }
+        if (target.isDirectory()) {
+            def targetRoot = target.canonicalFile.toPath()
+            List<File> caches = [
+                new File(rootProjectDir, '.gradle/trivy'),
+                new File(gradleHomeDir, 'trivy')
+            ]
+            caches.each { File cache ->
+                if (cache.isDirectory()) {
+                    def cachePath = cache.canonicalFile.toPath()
+                    if (cachePath.startsWith(targetRoot)) {
+                        String relative = targetRoot.relativize(cachePath).toString().replace('\\', '/')
+                        String path = './' + relative
+                        if (!excludes.contains(relative) && !excludes.contains(path)) {
+                            excludes.add(path)
+                        }
+                    }
+                }
+            }
+        }
+        new ArrayList<String>(excludes)
+    }
 
     @TaskAction
     void scan() {
@@ -112,8 +150,18 @@ Status: CLEAN - no vulnerabilities found
         ]
         if (severity.get().trim()) arguments.addAll(['--severity', severity.get().trim()])
         if (ignoreUnfixed.get()) arguments.add('--ignore-unfixed')
+
+        // For directory scans, never scan a Trivy executable that this plugin cached
+        // inside the target directory; also honor any user-selected skip patterns.
+        List<String> excludedDirs = effectiveSkipDirs(targetFile, baseDir, 
+            rootDirectory.get().asFile, gradleHomeDirectory.get().asFile, skipDirs.get())
+        excludedDirs.each { pattern -> arguments.addAll(['--skip-dirs', pattern]) }
+
         // For explicit targets, keep relative paths relative to the Gradle project directory.
         arguments.add(requestedTarget)
+        if (!excludedDirs.isEmpty()) {
+            logger.lifecycle('Skipping Trivy directories: ' + excludedDirs.join(', '))
+        }
 
         logger.lifecycle((defaultArtifact ? 'Scanning artifact with Trivy: ' : 'Scanning target with Trivy (' + mode + '): ') + targetFile.absolutePath)
         execOperations.exec { spec ->
