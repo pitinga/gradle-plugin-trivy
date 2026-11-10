@@ -8,6 +8,7 @@ A lightweight Gradle plugin that builds and scans the application **JAR with `tr
 
 - Preserves the published default: runs `bootJar` (or `jar`) and scans the generated archive with `trivy rootfs`.
 - Supports opt-in scans of an existing directory or file using `trivy.target` / `-PtrivyTarget=...` and optional `trivy.scanMode` / `-PtrivyScanMode=...`.
+- Supports directory exclusions through `trivy.skipDirs` (list) or `-PtrivySkipDirs=path1,path2`, forwarded as repeated `--skip-dirs` flags. Directory scans also automatically skip plugin-managed Trivy caches inside the scan target.
 - Uses Trivy already present on PATH, unless preferInstalled is disabled.
 - If absent, resolves the **latest stable Trivy release by default**, downloads the official archive for the host OS/CPU and checks SHA-256 against the official checksums file.
 - First tries the shared Gradle user home cache (normally ~/.gradle/trivy); on **permission errors** falls back to the root project's .gradle/trivy.
@@ -60,7 +61,7 @@ To scan the entire project directory as a filesystem instead:
 .\gradlew trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.'
 ~~~
 
-To include generated artifacts and installed binaries in a rootfs scan of the project:
+To scan the entire project (including generated artifacts) with `rootfs`:
 
 ~~~powershell
 .\gradlew trivy '-PtrivyTarget=.'
@@ -102,6 +103,8 @@ trivy {
     scanMode = 'rootfs'              // rootfs (default) or fs
     target = ''                      // blank (default): auto-build and scan bootJar/jar
                                      // '.': project directory; or an existing file path
+    skipDirs = []                    // no extra exclusions for default JAR scan
+                                     // e.g. ['.gradle/trivy', 'build/tmp', '**/node_modules']
     scanners = 'vuln'
     severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     ignoreUnfixed = false
@@ -117,11 +120,35 @@ Override the target directly from PowerShell without changing the build script:
 .\gradlew bootJar trivy '-PtrivyTarget=.\build\libs\app.jar'
 ~~~
 
-On Windows PowerShell, quote the complete `-P` argument to keep the JAR path intact. `-PtrivyTarget` takes precedence over `trivy { target = '...' }`. Paths are resolved relative to the Gradle project directory; absolute paths also work. You may optionally override the mode with `-PtrivyScanMode=rootfs`.
+On Windows PowerShell, quote the complete `-P` argument to keep the JAR path intact. `-PtrivyTarget` takes precedence over `trivy { target = '...' }`. `-PtrivySkipDirs` similarly overrides the configured `skipDirs` list. Paths are resolved relative to the Gradle project directory; absolute paths also work. You may optionally override the mode with `-PtrivyScanMode=rootfs`.
+
+### Excluding directories with `skipDirs`
+
+The original default remains **`trivy rootfs <built bootJar/jar>`** with no additional exclusions. To scan the project directory while excluding generated or tool files, configure:
+
+~~~groovy
+trivy {
+    scanMode = 'rootfs'
+    target = '.'
+    skipDirs = ['.gradle/trivy', 'build/tmp', '**/node_modules']
+}
+~~~
+
+Or pass a comma-separated list from **PowerShell 7** without editing `build.gradle`:
+
+~~~powershell
+.\gradlew trivy '-PtrivyTarget=.' '-PtrivySkipDirs=.gradle/trivy,build/tmp,**/node_modules'
+~~~
+
+Each non-empty entry becomes a distinct Trivy `--skip-dirs` argument; both relative paths and Trivy glob expressions are supported. The CLI list overrides the DSL list for that invocation. Empty or duplicate entries are ignored. You can also use `-PtrivyScanMode=fs` when you deliberately want filesystem scanning.
+
+**Self-exclusion:** when scanning a directory, the plugin automatically omits any **plugin-managed** Trivy installation cache inside that directory (normally `./.gradle/trivy` for the fallback cache). This prevents the plugin from scanning its own executable. You can still explicitly list `.gradle/trivy` in `skipDirs`; it will not be added twice. The default single-JAR scan is unchanged.
+
+Trivy's official [file/directory selection documentation](https://trivy.dev/docs/v0.76/guide/configuration/skipping/) describes the `--skip-dirs` option and glob matching.
 
 **Important:** when preferInstalled=true, a Trivy binary from PATH takes precedence even if its version differs from version. Set preferInstalled=false to force the specified cached/downloaded version.
 
-By default, the plugin builds and scans the JAR, including packaged libraries. Explicit project-directory scans may include build outputs and cached binaries, potentially reporting vulnerabilities unrelated to the application JAR. Such scans may also locate secrets with Trivy's secret scanner enabled, but the plugin's current ASCII report template is designed for vulnerability findings; use Trivy's default or JSON output for detailed secret findings. Apply the plugin to each relevant project in a multi-project build.
+By default, the plugin builds and scans the JAR, including packaged libraries. Explicit project-directory scans may include build outputs and cached binaries, potentially reporting vulnerabilities unrelated to the application JAR; plugin-managed Trivy cache directories inside the target are automatically excluded. Such scans may also locate secrets with Trivy's secret scanner enabled, but the plugin's current ASCII report template is designed for vulnerability findings; use Trivy's default or JSON output for detailed secret findings. Apply the plugin to each relevant project in a multi-project build.
 
 ## Installer cache policy
 
