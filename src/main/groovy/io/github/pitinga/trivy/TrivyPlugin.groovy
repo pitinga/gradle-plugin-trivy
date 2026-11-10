@@ -2,7 +2,6 @@ package io.github.pitinga.trivy
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
 class TrivyPlugin implements Plugin<Project> {
     @Override
@@ -16,7 +15,7 @@ class TrivyPlugin implements Plugin<Project> {
 
         def scan = project.tasks.register('trivy', TrivyScanTask) { task ->
             task.group = 'verification'
-            task.description = 'Build the JAR and scan it for vulnerabilities with Trivy'
+            task.description = 'Scan the project directory (or a configured target) for vulnerabilities with Trivy'
             task.outputs.upToDateWhen { false } // vulnerability databases can change between runs
         }
 
@@ -30,17 +29,14 @@ class TrivyPlugin implements Plugin<Project> {
             scan.configure { task ->
                 configureInstaller(task, project, settings)
                 task.workingDirectory.set(project.layout.projectDirectory)
-                task.scanMode.set(settings.scanMode)
+                task.scanMode.set(project.providers.gradleProperty('trivyScanMode').getOrElse(settings.scanMode))
+                task.scanTarget.set(project.providers.gradleProperty('trivyTarget').getOrElse(settings.target))
                 task.scanners.set(settings.scanners)
                 task.severity.set(settings.severity)
                 task.ignoreUnfixed.set(settings.ignoreUnfixed)
                 task.failOnVulnerability.set(settings.failOnVulnerability)
-
-                def archive = project.tasks.findByName('bootJar') ?: project.tasks.findByName('jar')
-                if (archive instanceof AbstractArchiveTask) {
-                    task.artifactFile.set(archive.archiveFile)
-                    task.dependsOn(archive)
-                }
+                // Scanning "." must not implicitly build bootJar or jar.
+                // For an explicit JAR target, users may run bootJar or jar first.
             }
         }
     }
