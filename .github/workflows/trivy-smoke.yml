@@ -55,3 +55,19 @@ jobs:
         run: gradle -p smoke trivy '-PtrivyTarget=.' --no-daemon --warning-mode all --configuration-cache --stacktrace
       - name: Explicit single JAR scan with rootfs
         run: gradle -p smoke trivy '-PtrivyTarget=build/libs/trivy-smoke.jar' --no-daemon --warning-mode all --configuration-cache --stacktrace
+      - name: Create directories for skipDirs integration test
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'smoke/.gradle/trivy/local-test' | Out-Null
+          New-Item -ItemType Directory -Force -Path 'smoke/generated-cache' | Out-Null
+      - name: Verify custom skipDirs and automatic Trivy cache exclusion
+        shell: pwsh
+        run: |
+          gradle -p smoke trivy '-PtrivyTarget=.' '-PtrivySkipDirs=generated-cache,build/tmp' --no-daemon --warning-mode all --configuration-cache --stacktrace *> skip-dirs-output.log
+          $status = $LASTEXITCODE
+          $log = Get-Content skip-dirs-output.log -Raw
+          Write-Host $log
+          if ($status -ne 0) { exit $status }
+          if (-not $log.Contains('Skipping Trivy directories: generated-cache, build/tmp, ./.gradle/trivy')) {
+            throw 'Expected --skip-dirs arguments and automatic Trivy cache exclusion were missing'
+          }
