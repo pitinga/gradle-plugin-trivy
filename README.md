@@ -4,7 +4,7 @@
 
 [**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
 
-> **Latest release:** `0.1.3` with Gradle Isolated Projects compatibility (publication workflow in progress). Versions `0.1.2` and `0.1.1` remain available. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
+> **Current published release:** `0.1.3` (latest) on the Gradle Plugin Portal, with confirmed Isolated Projects and Configuration Cache compatibility. Versions `0.1.2` and `0.1.1` remain available. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
 
 ## Quick start — version 0.1.3
 
