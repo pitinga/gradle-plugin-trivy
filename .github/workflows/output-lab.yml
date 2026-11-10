@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: trivy-output-lab-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lab:
     name: ${{ matrix.os }} / Trivy report formats
@@ -31,10 +35,10 @@ jobs:
       - name: Test and validate experimental plugin
         run: gradle clean test validatePlugins --no-daemon --warning-mode all --stacktrace
 
-      - name: Run six representative output strategies
+      - name: Run all ten output and encoding strategies
         shell: pwsh
         run: |
-          pwsh -File ./scripts/Test-Trivy-Output.ps1 -Fast
+          pwsh -File ./scripts/Test-Trivy-Output.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload output comparison evidence
