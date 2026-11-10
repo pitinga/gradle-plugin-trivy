@@ -1,4 +1,4 @@
-name: Release Gradle Trivy Plugin v0.1.2
+name: Release Gradle Trivy Plugin v0.1.3
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: gradle-plugin-release-v0.1.2
+  group: gradle-plugin-release-v0.1.3
   cancel-in-progress: false
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
           cache-provider: basic
       - name: Confirm stable release version
         shell: bash
-        run: grep -q "^version = '0.1.2'$" build.gradle
+        run: grep -q "^version = '0.1.3'$" build.gradle
       - name: Test, validate plugin and build publication metadata
         run: gradle --no-daemon clean test validatePlugins publishToMavenLocal --warning-mode all
       - name: Validate Plugin Portal submission without uploading
@@ -40,7 +40,7 @@ jobs:
         run: gradle --no-daemon publishPlugins --validate-only --warning-mode all
 
   release:
-    name: Publish GitHub v0.1.2 release
+    name: Publish GitHub v0.1.3 release
     needs: verify
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -55,29 +55,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v0.1.2 >/dev/null 2>&1; then
-            echo 'GitHub release v0.1.2 already exists.'
+          if gh release view v0.1.3 >/dev/null 2>&1; then
+            echo 'GitHub release v0.1.3 already exists.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if ! git ls-remote --exit-code --tags origin refs/tags/v0.1.2 >/dev/null 2>&1; then
-            git tag -a v0.1.2 -m 'Gradle Trivy Plugin v0.1.2'
-            git push origin refs/tags/v0.1.2
+          if ! git ls-remote --exit-code --tags origin refs/tags/v0.1.3 >/dev/null 2>&1; then
+            git tag -a v0.1.3 -m 'Gradle Trivy Plugin v0.1.3'
+            git push origin refs/tags/v0.1.3
           fi
-          gh release create v0.1.2 --verify-tag \
-            --title 'Gradle Trivy Plugin v0.1.2' \
-            --notes-file RELEASE_NOTES_0.1.2.md
+          gh release create v0.1.3 --verify-tag \
+            --title 'Gradle Trivy Plugin v0.1.3' \
+            --notes-file RELEASE_NOTES_0.1.3.md
 
   publish:
-    name: Publish Gradle Plugin Portal v0.1.2
+    name: Publish Gradle Plugin Portal v0.1.3
     needs: release
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: v0.1.2
+          ref: v0.1.3
           persist-credentials: false
       - uses: actions/setup-java@v6
         with:
@@ -89,8 +89,8 @@ jobs:
           cache-provider: basic
       - name: Confirm tag version
         shell: bash
-        run: grep -q "^version = '0.1.2'$" build.gradle
-      - name: Upload plugin v0.1.2 to Gradle Plugin Portal
+        run: grep -q "^version = '0.1.3'$" build.gradle
+      - name: Upload plugin v0.1.3 to Gradle Plugin Portal
         env:
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
           GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
