@@ -2,13 +2,13 @@
 
 A lightweight Gradle plugin that builds the JAR (including Spring Boot's bootJar), locates or installs Trivy, and scans the generated artifact. Designed for **Windows/Eclipse**, Linux and macOS.
 
-**Version:** 0.1.1 — Gradle 9.9 compatible release, prepared for public distribution. **Not yet available on the Gradle Plugin Portal** until the first publication is approved.
+**Published version:** `0.1.1` on the Gradle Plugin Portal. **Development branch:** `0.1.2-SNAPSHOT` (unreleased).
 
 ## Features
 
 - Runs the existing bootJar task (preferred) or jar task before scanning.
 - Uses Trivy already present on PATH, unless preferInstalled is disabled.
-- If absent, downloads an official Trivy release for the host OS/CPU and checks SHA-256 against the official checksums file.
+- If absent, resolves the **latest stable Trivy release by default**, downloads the official archive for the host OS/CPU and checks SHA-256 against the official checksums file.
 - First tries the shared Gradle user home cache (normally ~/.gradle/trivy); on **permission errors** falls back to the root project's .gradle/trivy.
 - Reuses a verified cached executable. Does not install globally or modify PATH.
 - Uses the same plain-ASCII vulnerability report as the original Gradle task, avoiding corrupted Unicode table borders in the Eclipse console.
@@ -24,7 +24,7 @@ A lightweight Gradle plugin that builds the JAR (including Spring Boot's bootJar
 
 ## Quick start (source checkout)
 
-The Gradle Plugin Portal version cannot be resolved until publication is approved. For now, use a composite build:
+To test changes from the unreleased development branch, use a composite build:
 
 Clone this repository alongside the Gradle project.
 
@@ -59,9 +59,9 @@ To download or resolve Trivy without scanning:
 .\gradlew trivyInstall
 ~~~
 
-## Usage after Plugin Portal approval
+## Use the published version
 
-Once `0.1.1` is visible in the Gradle Plugin Portal, consumer projects will be able to apply the plugin directly, without `includeBuild`:
+To use the published `0.1.1` version directly from the Gradle Plugin Portal without `includeBuild`:
 
 ~~~groovy
 plugins {
@@ -69,13 +69,13 @@ plugins {
 }
 ~~~
 
-This example is **not yet usable through the public Portal** until publication has completed.
+**Note:** the new default `version = 'latest'` is currently on the `main` development branch and will not affect published `0.1.1` users until a subsequent plugin release.
 
 ## Optional configuration
 
 ~~~groovy
 trivy {
-    version = '0.76.2'               // or 'latest'; applies to downloads/cache
+    version = 'latest'               // latest stable Trivy release for downloads/cache (main branch)
     autoInstall = true               // download if missing
     preferInstalled = true           // prefer an installed PATH binary regardless of its version
     scanMode = 'rootfs'              // rootfs or fs
@@ -95,7 +95,7 @@ The plugin scans the built JAR, not every dependency or artifact in a multi-proj
 ## Installer cache policy
 
 1. Discover an existing Trivy executable on PATH when preferInstalled=true.
-2. Resolve version (fixed by default; latest queries GitHub API).
+2. Resolve version (latest stable by default on the development branch, querying GitHub Releases; you may specify a fixed version instead).
 3. Check the verified executable at GRADLE_USER_HOME/trivy/VERSION/PLATFORM/.
 4. If not present, download and verify the official archive, install and reuse it.
 5. **Only** for shared-cache permission failures, fall back to PROJECT_ROOT/.gradle/trivy/VERSION/PLATFORM/.
