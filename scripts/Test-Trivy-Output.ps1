@@ -73,6 +73,7 @@ Write-Host 'Each experiment invokes the actual Trivy scan (no parallel database 
 Write-Host ''
 
 $results = @()
+$baselineCveIds = $null
 foreach ($case in $cases) {
     $name = $case.Name
     $logFile = Join-Path $resultsDir ($name + '.console.log')
@@ -118,8 +119,56 @@ foreach ($case in $cases) {
         }
     }
 
+    # Compare unique vulnerability IDs across all representations, not just exit codes.
+    $reportText = if ($saved) { Get-Content -LiteralPath $reportFile -Raw -Encoding utf8 } else { $logText }
+    if ($case.Format -eq 'json' -and $saved -and $jsonValid) {
+        $reportJson = $reportText | ConvertFrom-Json
+        $cveIds = @($reportJson.Results | ForEach-Object { $_.Vulnerabilities } |
+            Where-Object { $null -ne $_ } | ForEach-Object { $_.VulnerabilityID } |
+            Where-Object { $_ -match '^CVE-\\d{4}-\\d{4,}
+    $result = [pscustomobject]@{
+        Case = $name
+        Format = $case.Format
+        Strategy = $case.Strategy
+        File = $case.SaveFile
+        ExitCode = $exitCode
+        Status = $status
+        PluginVersionSeen = $versionShown
+        JsonValid = $jsonValid
+        CVEs = @($cveIds).Count
+        SameCVEsAsOriginal = $sameCves
+        Seconds = [math]::Round($watch.Elapsed.TotalSeconds, 1)
+        ConsoleLog = $logFile
+        Report = if ($saved) { $reportFile } else { '' }
+    }
+    $results += $result
+    Write-Host ("{0} | Exit={1} | {2}s | Saved={3} | PluginVersion={4}" -f
+        $status, $exitCode, $result.Seconds, $saved, $versionShown)
+}
+
+$summaryFile = Join-Path $resultsDir 'summary.csv'
+$results | Export-Csv -LiteralPath $summaryFile -NoTypeInformation -Encoding utf8
+$results | Format-Table Case, Format, Strategy, File, Status, CVEs, SameCVEsAsOriginal, Seconds -AutoSize
+Write-Host "Saved comparison: $summaryFile"
+Write-Host "Inspect .console.log for Eclipse/Windows table rendering and .txt/.json for original UTF-8."
+if (@($results | Where-Object Status -ne 'OK').Count -gt 0) {
+    Write-Warning 'One or more cases require inspection. Original console output is kept separately.'
+    exit 1
+}
+ } | Sort-Object -Unique)
+    } else {
+        $cveIds = @([regex]::Matches($reportText, 'CVE-\\d{4}-\\d{4,}') |
+            ForEach-Object { $_.Value } | Sort-Object -Unique)
+    }
+    if ($null -eq $baselineCveIds -and $case.Name.StartsWith('00-')) {
+        $baselineCveIds = $cveIds
+    }
+    $sameCves = if ($null -eq $baselineCveIds) { $null } else {
+        @(Compare-Object -ReferenceObject @($baselineCveIds) -DifferenceObject @($cveIds)).Count -eq 0
+    }
+
     $versionShown = $logText.Contains("Gradle Trivy Plugin : $pluginVersion")
-    $status = if ($exitCode -eq 0 -and (-not $case.SaveFile -or $saved) -and $versionShown -and ($jsonValid -ne $false)) {
+    $status = if ($exitCode -eq 0 -and (-not $case.SaveFile -or $saved) -and $versionShown -and ($jsonValid -ne $false) -and ($sameCves -ne $false)) {
         'OK'
     } else {
         'CHECK'
