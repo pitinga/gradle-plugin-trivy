@@ -1,6 +1,5 @@
 package io.github.pitinga.trivy
 
-import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -13,14 +12,10 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = 'Vulnerability results depend on continuously updated external databases')
 abstract class TrivyScanTask extends TrivyTaskBase {
-    @Inject
-    abstract ExecOperations getExecOperations()
-
     // Optional only for explicit target scans; by default this is bootJar/jar.
     @Optional
     @InputFile
@@ -141,6 +136,7 @@ Status: CLEAN - no vulnerabilities found
         }
 
         File executable = resolveExecutable()
+        logVersionHeader(executable)
         List<String> arguments = [
             mode,
             '--scanners', scanners.get(),
