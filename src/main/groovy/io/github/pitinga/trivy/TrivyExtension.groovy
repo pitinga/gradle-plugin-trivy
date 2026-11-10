@@ -4,8 +4,8 @@ package io.github.pitinga.trivy
  * Groovy DSL configuration for the Trivy Gradle plugin.
  */
 class TrivyExtension {
-    /** Version used for downloads; an installed PATH binary takes precedence by default. */
-    String version = '0.76.2'
+    /** Latest stable release for downloads/cache; an installed PATH binary takes precedence by default. */
+    String version = 'latest'
     boolean autoInstall = true
     boolean preferInstalled = true
     boolean failOnVulnerability = false
