@@ -2,6 +2,7 @@ package io.github.pitinga.trivy
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 
 class TrivyPlugin implements Plugin<Project> {
     @Override
@@ -15,7 +16,7 @@ class TrivyPlugin implements Plugin<Project> {
 
         def scan = project.tasks.register('trivy', TrivyScanTask) { task ->
             task.group = 'verification'
-            task.description = 'Scan the project directory (or a configured target) for vulnerabilities with Trivy'
+            task.description = 'Build and scan the JAR using rootfs by default; allow explicit scan targets'
             task.outputs.upToDateWhen { false } // vulnerability databases can change between runs
         }
 
@@ -30,13 +31,23 @@ class TrivyPlugin implements Plugin<Project> {
                 configureInstaller(task, project, settings)
                 task.workingDirectory.set(project.layout.projectDirectory)
                 task.scanMode.set(project.providers.gradleProperty('trivyScanMode').getOrElse(settings.scanMode))
-                task.scanTarget.set(project.providers.gradleProperty('trivyTarget').getOrElse(settings.target))
+                String requestedTarget = project.providers.gradleProperty('trivyTarget').getOrElse(settings.target ?: '')
+                task.scanTarget.set(requestedTarget)
                 task.scanners.set(settings.scanners)
                 task.severity.set(settings.severity)
                 task.ignoreUnfixed.set(settings.ignoreUnfixed)
                 task.failOnVulnerability.set(settings.failOnVulnerability)
-                // Scanning "." must not implicitly build bootJar or jar.
-                // For an explicit JAR target, users may run bootJar or jar first.
+
+                // Preserve the published behavior: an unspecified target builds bootJar (or jar)
+                // and scans the generated archive. Explicit file/directory targets do not
+                // trigger compilation or packaging, including trivy fs . and trivy rootfs .
+                if (!requestedTarget.trim()) {
+                    def archive = project.tasks.findByName('bootJar') ?: project.tasks.findByName('jar')
+                    if (archive instanceof AbstractArchiveTask) {
+                        task.artifactFile.set(archive.archiveFile)
+                        task.dependsOn(archive)
+                    }
+                }
             }
         }
     }
