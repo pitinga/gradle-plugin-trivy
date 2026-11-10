@@ -10,10 +10,10 @@ class TrivyExtension {
     boolean preferInstalled = true
     boolean failOnVulnerability = false
 
-    /** Scan the project directory with trivy fs . by default. */
-    String scanMode = 'fs'
-    /** Relative to the Gradle project directory (or an absolute path). */
-    String target = '.'
+    /** Keep the published behavior: scan the built bootJar/jar using rootfs. */
+    String scanMode = 'rootfs'
+    /** Empty: build and scan bootJar/jar. Set '.' or a file path for an explicit scan target. */
+    String target = ''
     String scanners = 'vuln'
     String severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     boolean ignoreUnfixed = false
