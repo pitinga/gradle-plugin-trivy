@@ -1,9 +1,15 @@
-name: Experimental native Trivy output without terminal changes
+name: Native Trivy table and JSON integration tests
 
 on:
   push:
-    branches:
-      - experiment/output-formats-console-file
+    branches: [main, experiment/output-formats-console-file]
+    paths:
+      - 'src/**'
+      - 'lab-output/**'
+      - 'scripts/Test-Trivy-Output.ps1'
+      - '.github/workflows/output-lab.yml'
+      - 'build.gradle'
+  pull_request:
   workflow_dispatch:
 
 permissions:
