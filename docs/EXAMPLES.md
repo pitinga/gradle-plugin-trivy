@@ -1,17 +1,15 @@
-# Practical usage examples
+# Usage examples — Gradle Trivy Plugin 0.1.4
 
-[Back to README](../README.md) | [Configuration](CONFIGURATION.md) | [Troubleshooting](TROUBLESHOOTING.md)
+[README](../README.md) · [Configuration](CONFIGURATION.md) · [Troubleshooting](TROUBLESHOOTING.md)
 
-**Version labels matter:** published `0.1.1` users can run the default JAR scan and configure existing extension fields. `target`, `skipDirs` and scan-specific `-P` overrides are available in **0.1.2+** directly from the Gradle Plugin Portal.
+All examples use **`io.github.pitinga.trivy` version `0.1.4`** and the native `table` or `json` report formats. Add the plugin to the existing project; do not replace the application's other plugin declarations.
 
-## 1. Scan a Spring Boot application (published 0.1.1+)
-
-Add the plugin to your **existing** Spring Boot build:
+## Spring Boot: build and scan the executable JAR
 
 ~~~groovy
 plugins {
-    id 'org.springframework.boot' version 'YOUR_EXISTING_SPRING_BOOT_VERSION'
-    id 'io.github.pitinga.trivy' version '0.1.3'
+    id 'org.springframework.boot' version 'YOUR_SPRING_BOOT_VERSION'
+    id 'io.github.pitinga.trivy' version '0.1.4'
 }
 ~~~
 
@@ -19,14 +17,14 @@ plugins {
 .\gradlew trivy
 ~~~
 
-The plugin runs `bootJar`, installs/locates Trivy, and scans the resulting JAR with `rootfs`. If the Spring Boot plugin is already declared, add only the Trivy plugin line. The default scan does not fail the build when it finds CVEs.
+With no explicit target, the plugin depends on `bootJar` and scans that JAR using `rootfs`. The native table is displayed in the Gradle/Eclipse console, with a Windows-compatible presentation when needed. CVEs do not fail the build by default.
 
-## 2. Standard Java project (published 0.1.1+)
+## Plain Java: scan a regular JAR
 
 ~~~groovy
 plugins {
     id 'java'
-    id 'io.github.pitinga.trivy' version '0.1.3'
+    id 'io.github.pitinga.trivy' version '0.1.4'
 }
 ~~~
 
@@ -34,9 +32,48 @@ plugins {
 .\gradlew trivy
 ~~~
 
-The plugin builds and scans `jar`.
+The plugin depends on `jar` and scans the built artifact with `rootfs`.
 
-## 3. Fail a pipeline when HIGH/CRITICAL vulnerabilities are found (published 0.1.1+)
+## Native JSON saved to a report file
+
+Groovy DSL:
+
+~~~groovy
+trivy {
+    format = 'json'
+    outputFile = 'build/reports/trivy.json'
+}
+~~~
+
+Or a one-off PowerShell execution:
+
+~~~powershell
+.\gradlew trivy '-PtrivyFormat=json' '-PtrivyOutput=build/reports/trivy.json'
+~~~
+
+The file contains Trivy's **native UTF-8 JSON**, with package paths and vulnerability details. When a report file is set, Trivy sends the complete report to that file rather than duplicating it in the console.
+
+## Native table saved to a file
+
+~~~powershell
+.\gradlew trivy '-PtrivyFormat=table' '-PtrivyOutput=build/reports/trivy-table.txt'
+~~~
+
+The saved file preserves Trivy's original Unicode table borders and full descriptions, even on Windows. For the normal console presentation, omit `-PtrivyOutput`.
+
+## Customize Trivy CLI selection
+
+~~~groovy
+trivy {
+    version = 'latest'
+    preferInstalled = false
+    autoInstall = true
+}
+~~~
+
+This bypasses Trivy from PATH, selecting a cached or downloaded official release. The plugin version in the `plugins` block remains `0.1.4`.
+
+## Security gate: fail on HIGH or CRITICAL CVEs with an available fix
 
 ~~~groovy
 trivy {
@@ -44,6 +81,8 @@ trivy {
     severity = 'HIGH,CRITICAL'
     ignoreUnfixed = true
     failOnVulnerability = true
+    format = 'json'
+    outputFile = 'build/reports/trivy.json'
 }
 ~~~
 
@@ -51,73 +90,64 @@ trivy {
 .\gradlew trivy --warning-mode all
 ~~~
 
-A nonzero exit can also indicate a download/scan error. Inspect logs before interpreting an exit status.
+When Trivy reports matching vulnerabilities, the task fails. Actual command failures also fail. Evaluate the security context before deciding which severities and exclusions to use.
 
-## 4. Force the latest stable Trivy binary (published 0.1.1+)
-
-~~~groovy
-trivy {
-    version = 'latest'
-    preferInstalled = false
-}
-~~~
-
-This setting bypasses the installed binary in PATH. The Gradle plugin version `0.1.2` is distinct from the Trivy CLI version.
-
-## 5. Scan everything under the project with rootfs (0.1.2+)
+## Scan the entire project directory
 
 ~~~powershell
 .\gradlew bootJar trivy '-PtrivyTarget=.'
 ~~~
 
-Here `bootJar` is explicit, because when `target` is set the plugin will **not** build an artifact automatically. This mode can find vulnerabilities in pre-existing generated JARs and other supported binaries. It automatically excludes the plugin-managed Trivy cache if present inside the scan directory.
+With an explicit `target = '.'`, the plugin does **not** depend on `bootJar` automatically. This command builds it explicitly before scanning existing files. For a plain Java project, invoke `jar` instead of `bootJar`.
 
-## 6. Scan project metadata with fs (0.1.2+)
+The plugin skips its own managed Trivy binary cache when that cache lives inside the directory being scanned.
+
+## Scan dependency metadata with fs
 
 ~~~powershell
 .\gradlew trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.'
 ~~~
 
-In some Java projects this identifies zero language-specific files, even though the built JAR contains vulnerable dependencies. For packaged Java dependencies, prefer the default `rootfs` JAR scan.
+`fs .` can miss compiled Java JAR dependencies that `rootfs` detects in the packaged JAR. Do not assume an empty result is proof of safety.
 
-## 7. Scan a specific JAR (0.1.2+)
+## Scan an existing JAR by path
 
 ~~~powershell
-.\gradlew bootJar trivy '-PtrivyTarget=build/libs/app.jar'
+.\gradlew trivy '-PtrivyTarget=build/libs/application.jar'
 ~~~
 
-Substitute your actual artifact filename. The plugin uses `rootfs` by default. For an absolute path, pass the full Windows or Linux path in the quoted `-P` argument.
+The JAR must already exist, and `rootfs` remains the default. If it needs rebuilding, run `bootJar` or `jar` first.
 
-## 8. Exclude caches or tooling (0.1.2+)
+## Exclude selected directories
 
 ~~~groovy
 trivy {
     target = '.'
-    scanMode = 'rootfs'
     skipDirs = ['.gradle/trivy', 'build/tmp', '**/node_modules']
 }
 ~~~
 
-Or use PowerShell 7 to override the directories for one invocation:
+Or, for one execution:
 
 ~~~powershell
 .\gradlew trivy '-PtrivyTarget=.' '-PtrivySkipDirs=.gradle/trivy,build/tmp,**/node_modules'
 ~~~
 
-The CLI list **replaces** the DSL list. Excluding a directory changes the coverage; it does not remediate its vulnerabilities.
+The `-PtrivySkipDirs` argument replaces the entire DSL list. Exclusions reduce coverage.
 
-## 9. Eclipse / Buildship
+## Eclipse / Buildship
 
-1. Import/refresh the Gradle project in Eclipse.
-2. Use the **Gradle Tasks** view to execute `trivy`.
-3. For command arguments, open **Run → Run Configurations → Gradle Task → Arguments** and set **Program Arguments** (e.g., `--warning-mode all`).
-4. The plugin uses a plain-text ASCII report to avoid corrupted box-drawing characters in the Eclipse Console.
+1. Refresh the Gradle project.
+2. Open **Run → Run Configurations → Gradle Task** (or the Gradle Tasks view) and choose task `trivy`.
+3. Place any scan/report overrides in **Program Arguments**; for example:
+   ~~~text
+   --isolated-projects -PtrivyFormat=json -PtrivyOutput=build/reports/trivy.json
+   ~~~
+4. Run. The console shows the plugin/Trivy/Gradle/Java version banner and Trivy INFO messages as normal output, without making informational lines red. When no `outputFile` is provided, Windows terminals display the native Trivy table using safe ASCII borders — **no chcp, PowerShell encoding change, or Eclipse configuration is needed**.
 
-Only on version 0.1.2+, `'-PtrivyTarget=.'` and other scan overrides may be passed through Program Arguments. Do **not** put Gradle options in **JVM Arguments**.
+On Gradle 9.9, repeat `trivy --isolated-projects` to verify `Reusing configuration cache`. The scan must execute again even if Gradle reuses configuration.
 
-## 10. Azure DevOps pipeline
-
-Example for a Linux agent where the project already applies the published plugin:
+## Azure DevOps (Linux)
 
 ~~~yaml
 pool:
@@ -125,21 +155,29 @@ pool:
 
 steps:
   - checkout: self
-    displayName: 'Checkout'
+    displayName: Checkout
     fetchDepth: 0
 
   - task: Bash@3
-    displayName: 'Trivy | Scan Java artifact'
+    displayName: 'Trivy | Native JSON security report'
     inputs:
       targetType: inline
       script: |
         chmod +x ./gradlew
-        ./gradlew trivy --no-daemon --warning-mode all
+        ./gradlew trivy '-PtrivyFormat=json' '-PtrivyOutput=build/reports/trivy.json' --no-daemon --warning-mode all
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Trivy JSON
+    condition: always()
+    inputs:
+      PathtoPublish: '$(Build.SourcesDirectory)/build/reports/trivy.json'
+      ArtifactName: trivy-report
+      publishLocation: Container
 ~~~
 
-The agent must have a compatible Java runtime and network/database access for Trivy. For a security gate, configure `failOnVulnerability = true` in `build.gradle`. With version 0.1.2+, command-line scan overrides can also be supplied.
+The project must already apply plugin version `0.1.4`. Configure `failOnVulnerability` in the DSL if CI should fail on findings. Artifact publishing requires an actual generated report.
 
-## 11. GitHub Actions
+## GitHub Actions
 
 ~~~yaml
 steps:
@@ -152,7 +190,19 @@ steps:
     with:
       gradle-version: '9.9.0'
       cache-provider: basic
-  - run: gradle trivy --no-daemon --warning-mode all
+  - run: ./gradlew trivy --no-daemon --warning-mode all
 ~~~
 
-Both CI examples assume the repository has already configured the plugin. They do not publish or modify any plugin version.
+## Source checkout for development
+
+To test a local fork/branch rather than the Portal plugin, add to the **consumer's** `settings.gradle`:
+
+~~~groovy
+pluginManagement {
+    includeBuild('C:/DBServer/eclipse-workspace/gradle-plugin-trivy')
+}
+~~~
+
+Use `id 'io.github.pitinga.trivy'` **without a version** in the consumer's `plugins` block, then refresh Gradle. Remove `includeBuild` and restore `version '0.1.4'` to use the published release.
+
+[All settings and defaults](CONFIGURATION.md).
