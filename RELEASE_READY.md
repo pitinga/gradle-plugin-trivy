@@ -1,15 +1,22 @@
-# Gradle Trivy Plugin v0.1.3 — release approved
+# Gradle Trivy Plugin v0.1.4 — release approved
 
-This release adds tested **Gradle Isolated Projects** compatibility while preserving the original Trivy `rootfs` JAR scan as default.
+User authorization: publication of v0.1.4 was explicitly requested after successful local Eclipse tests.
 
-Validation completed before release:
+The README and all current usage guides now describe **only v0.1.4**. Historical releases remain available in CHANGELOG.md and their immutable release tags.
 
-- Eight existing Gradle checks passed on Windows and Linux with Gradle 8.14.3, 9.1.0, 9.9.0 (JDK 17), plus Gradle 9.9.0 (JDK 25).
-- Four dedicated Gradle 9.9 Isolated Projects tests passed in a multi-project build (Windows/Linux, JDK 17/25), including configuration cache reuse.
-- Real Trivy scans with `--isolated-projects` passed on Windows and Linux.
+Release highlights:
+- Native Trivy `table` as the default and native `json`; remove the old custom vulnerability template and experimental outputStrategy.
+- Optional native UTF-8 reports using `outputFile` and `-PtrivyOutput`; format override using `-PtrivyFormat`.
+- Windows/Eclipse codepage-safe ASCII console rendering without terminal configuration; retain exact Trivy output bytes in files.
+- Trivy INFO diagnostics use regular Gradle output; WARN/ERROR and scan failures retain correct severity.
+- Banner identifying plugin, Trivy CLI, Gradle and Java versions; retain automatic JAR rootfs scanning and Gradle Isolated Projects compatibility.
 
-The versioned `v0.1.2` tag and Gradle Plugin Portal publication remain unchanged.
+Validation completed on the main branch:
+- Gradle compatibility (Windows/Linux, Gradle 8.14.3, 9.1.0, 9.9.0, JDK 17/25): 8/8 successful — https://github.com/pitinga/gradle-plugin-trivy/actions/runs/43034617895
+- Gradle 9.9 Isolated Projects multi-project validation: 4/4 successful — https://github.com/pitinga/gradle-plugin-trivy/actions/runs/43034618185
+- Native table/JSON reports, UTF-8 files, correct diagnostics: 2/2 successful — https://github.com/pitinga/gradle-plugin-trivy/actions/runs/43034617815
+- User confirmed actual Eclipse/Gradle 9.9/Java 25 scans and Configuration Cache reuse.
 
-This commit starts a *gated* v0.1.3 release workflow. It must run `clean test validatePlugins publishToMavenLocal` and `publishPlugins --validate-only` using existing encrypted GitHub Repository Secrets before it creates the v0.1.3 GitHub tag/release and publishes that immutable tag to the Gradle Plugin Portal.
+This marker triggers the **gated release workflow**: verify stable 0.1.4 and run automated tests and Plugin Portal `publishPlugins --validate-only` using encrypted credentials; create an annotated immutable v0.1.4 Git tag plus a GitHub Release; then publish **the tagged source** to the Gradle Plugin Portal. Do not overwrite earlier release tags.
 
-Authorization: the user explicitly requested publication after test success.
+Reference: RELEASE_NOTES_0.1.4.md.
