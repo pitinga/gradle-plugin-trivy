@@ -11,11 +11,17 @@ As tentativas anteriores demonstraram que a tabela original funciona ao usar UTF
 ### Como funcionam os relatórios
 
 - **Console Windows, formato table:** o Trivy gera a sua **tabela nativa** em UTF-8. O plugin lê a tabela e adapta **somente a representação no console** para caracteres ASCII, que funcionam no Windows PowerShell 7, CMD, Eclipse e ferramentas que não suportam Unicode. As colunas, valores, CVEs e estruturas permanecem gerados pelo Trivy; **não existe template customizado**.
+  - As bordas da tabela começam e terminam com `+`, incluindo cantos e cruzamentos; linhas horizontais utilizam `-` e colunas `|`.
 - **Console Windows, formato json:** o Trivy gera o JSON nativo; o plugin representa caracteres não ASCII como sequências JSON `\uXXXX`, conservando os valores e gerando JSON válido mesmo em console legado.
 - **Console Linux/macOS:** o Trivy escreve o resultado nativo, sem alteração.
 - **Arquivo em qualquer sistema:** utiliza `--output` do Trivy. O arquivo contém os **bytes nativos UTF-8**, inclusive bordas Unicode da tabela, sem nenhuma conversão. Assim como no CLI original, quando existe arquivo a saída completa vai para ele, não para o console.
 
-O plugin não altera `[Console]::OutputEncoding`, a code page do Windows, o daemon Gradle, o IDE ou variáveis de ambiente globais. A apresentação no console Windows é **portável**, mas as bordas ASCII não são os caracteres Unicode originais. Para ver a tabela Unicode exata, abra o arquivo gerado.
+O plugin não altera `[Console]::OutputEncoding`, a code page do Windows, o daemon Gradle, o IDE ou variáveis de ambiente globais.
+
+### Diagnósticos do Trivy no Eclipse
+
+O Trivy escreve mensagens `INFO` no STDERR do processo mesmo quando a análise é bem-sucedida. O plugin captura esse fluxo e encaminha `INFO`/`DEBUG` pelo canal de mensagens normais do Gradle (`lifecycle`), para não aparecerem em vermelho no Eclipse. Mensagens `WARN` continuam como avisos e mensagens `ERROR`/`FATAL` ou STDERR desconhecido continuam como erros. O código de saída do Trivy continua sendo respeitado, sem suprimir falhas.
+ A apresentação no console Windows é **portável**, mas as bordas ASCII não são os caracteres Unicode originais. Para ver a tabela Unicode exata, abra o arquivo gerado.
 
 ## Parâmetros disponíveis
 
