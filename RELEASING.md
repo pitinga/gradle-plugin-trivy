@@ -1,72 +1,69 @@
-# Publishing Gradle Trivy Plugin
+# Publishing Gradle Trivy Plugin — v0.1.4
 
-The repository contains the **0.1.1** release configuration and publication metadata. There are two separate release destinations: GitHub (source release) and the Gradle Plugin Portal (plugin distribution).
+[README](README.md) · [Release notes](RELEASE_NOTES_0.1.4.md) · [Changelog](CHANGELOG.md)
 
-The previous v0.1.0 tag remains unchanged. Version 0.1.1 includes Gradle 9.9 task validation compatibility and is the version prepared for the first Plugin Portal publication.
+The release is distributed in two locations:
 
-## Preconditions
+- **GitHub:** an immutable annotated `v0.1.4` Git tag and a GitHub Release with release notes.
+- **Gradle Plugin Portal:** the plugin ID `io.github.pitinga.trivy`, version `0.1.4`.
 
-- All GitHub Actions checks pass on Windows and Linux.
-- The plugin has been tested with `--warning-mode all` and `--configuration-cache`.
-- `build.gradle` has `version = '0.1.1'` (not a SNAPSHOT) and includes the `com.gradle.plugin-publish` plugin.
-- The [Gradle Plugin Portal](https://plugins.gradle.org/) account belongs to the publisher and has an API key.
+The repository's release workflow creates the GitHub release first and then publishes **from that immutable tag** to the Gradle Plugin Portal.
 
-## Build and validate locally
+## Prerequisites
 
-From the plugin repository:
+- `main` has the fully reviewed, tested release code, and `build.gradle` declares `version = '0.1.4'` (no `-SNAPSHOT`).
+- Windows/Linux Gradle matrix, native report lab, and Isolated Projects checks have passed.
+- GitHub Actions repository secrets `GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET` are configured securely.
+- `RELEASE_NOTES_0.1.4.md` accurately describes this release.
+- No existing `v0.1.4` tag or Gradle Plugin Portal version is being replaced.
+
+## Test locally (PowerShell 7)
 
 ~~~powershell
 gradle --no-daemon clean test validatePlugins publishToMavenLocal --warning-mode all
 ~~~
 
-To validate the Plugin Portal submission **without uploading**:
+To check release credentials and Portal metadata without publishing (requires configured credentials):
 
 ~~~powershell
-gradle publishPlugins --validate-only
+gradle --no-daemon publishPlugins --validate-only
 ~~~
 
-That server-side validation may require Plugin Portal credentials.
+## Automated gated release
 
-## Publish securely using GitHub Actions
+`.github/workflows/release.yml` triggers **only when `RELEASE_READY.md` changes on `main`**. It runs three jobs in this order:
 
-The repository provides [Publish Gradle Plugin Portal](https://github.com/pitinga/gradle-plugin-trivy/actions/workflows/publish-plugin.yml), a **manual-only** workflow. Add encrypted **Repository Secrets** in Settings > Secrets and variables > Actions with these exact names:
+1. **Verify:** check version `0.1.4`, run `clean test validatePlugins publishToMavenLocal` and `publishPlugins --validate-only`.
+2. **GitHub release:** create an annotated `v0.1.4` tag and publish a GitHub Release from `RELEASE_NOTES_0.1.4.md`; skip creation if the release already exists.
+3. **Plugin Portal:** check out the immutable `v0.1.4` tag, check the version, and run `publishPlugins` with encrypted repository secrets.
+
+The `RELEASE_READY.md` marker should be updated **only after** merging and verifying all normal CI checks. Never edit an existing version tag or publish from moving `main` code after creating a release tag.
+
+## Manual validation/publication workflow
+
+`.github/workflows/publish-plugin.yml` supports `workflow_dispatch` on `main` with a choice of `validate` or `publish`. Both modes check out `v0.1.4` rather than moving `main`. Use `validate` to inspect publication status without uploading, or `publish` to retry a Portal upload from the existing tag **only if the release hasn't already been published**.
+
+The workflow has read-only repository permissions and obtains API credentials only from encrypted GitHub Actions secrets.
+
+## Credentials
+
+Set these **GitHub Actions Repository Secrets**, not values in source control:
 
 - `GRADLE_PUBLISH_KEY`: Gradle Plugin Portal API key
-- `GRADLE_PUBLISH_SECRET`: corresponding API secret
+- `GRADLE_PUBLISH_SECRET`: matching API secret
 
-In Actions, select the workflow, choose `Run workflow` on `main`, and select:
+For a local manual publication you may instead use `~/.gradle/gradle.properties` with `gradle.publish.key` and `gradle.publish.secret`. Never commit API keys, build logs containing secrets, or generated credentials.
 
-- `validate` (default): builds/tests the tagged `v0.1.1` source and runs `publishPlugins --validate-only` without uploading.
-- `publish`: runs the same verification and server-side validation first, then `publishPlugins` if both passed.
+## After release
 
-The workflow checks out the immutable release tag `v0.1.1`, not the latest changing `main`, and limits repository permissions to read. Both secrets are only injected into the validation/publication steps; the public workflow does not contain or print their values.
+Verify that [GitHub release v0.1.4](https://github.com/pitinga/gradle-plugin-trivy/releases/tag/v0.1.4) exists and [Gradle Plugin Portal](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) lists `0.1.4` as the latest version.
 
-## Portal credentials
+Publish consumers with:
 
-Prefer securely configured environment variables, for example in your local user session or a protected CI environment:
-
-- `GRADLE_PUBLISH_KEY`
-- `GRADLE_PUBLISH_SECRET`
-
-Alternatively, store `gradle.publish.key` and `gradle.publish.secret` in the publisher's user-level `~/.gradle/gradle.properties`. **Never** commit secrets or credentials to this repository or log them.
-
-## Publish
-
-After validating the public metadata and accepting the Portal's terms:
-
-~~~powershell
-gradle publishPlugins
+~~~groovy
+plugins {
+    id 'io.github.pitinga.trivy' version '0.1.4'
+}
 ~~~
 
-The first version can require approval by the Gradle Plugin Portal team. Until approval, consumers should use the composite-build `includeBuild` example in README.md.
-
-## GitHub release
-
-For the first release, the checked-in GitHub Actions workflow `.github/workflows/release.yml` is triggered when `RELEASE_READY.md` is committed to `main` (or manually via workflow dispatch). It validates the plugin, creates an annotated `v0.1.1` tag at that commit, and publishes a GitHub release using CHANGELOG.md. The workflow does **not** publish to the Gradle Plugin Portal. Do not reuse the same version after publication; make future improvements in `0.1.1` or later.
-
-## Plugin coordinates
-
-- Plugin ID: `io.github.pitinga.trivy`
-- Group: `io.github.pitinga`
-- Version: `0.1.1`
-- Source: https://github.com/pitinga/gradle-plugin-trivy
+Afterward, prepare future changes in a new development version rather than modifying the immutable `v0.1.4` release tag.
