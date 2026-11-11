@@ -39,6 +39,8 @@ class TrivyPlugin implements Plugin<Project> {
                     ? new ArrayList<String>(settings.skipDirs ?: [])
                     : commandLineSkipDirs.split(',').collect { it.trim() }.findAll { !it.isEmpty() }
                 task.skipDirs.set(configuredSkipDirs)
+                task.reportFormat.set(project.providers.gradleProperty('trivyFormat').getOrElse(settings.format))
+                task.reportOutputFile.set(project.providers.gradleProperty('trivyOutput').getOrElse(settings.outputFile ?: ''))
                 task.scanners.set(settings.scanners)
                 task.severity.set(settings.severity)
                 task.ignoreUnfixed.set(settings.ignoreUnfixed)

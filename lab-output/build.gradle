@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+    id 'io.github.pitinga.trivy'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Deliberately vulnerable historical dependency FOR TESTS ONLY.
+    implementation 'com.rabbitmq:amqp-client:5.30.0'
+}
+
+// Preserve the Maven dependency as a nested JAR so Trivy rootfs sees it,
+// just as it does inside a Spring Boot bootJar.
+tasks.named('jar') {
+    from(configurations.runtimeClasspath) {
+        into 'BOOT-INF/lib'
+    }
+}

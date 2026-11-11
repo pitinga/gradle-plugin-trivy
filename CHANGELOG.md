@@ -1,12 +1,14 @@
 # Changelog
 
-## 0.1.4-SNAPSHOT — Unreleased
+## 0.1.4 — 2026-11-11
 
-- Print a consistent ASCII runtime version header in both `trivy` and `trivyInstall` tasks (Gradle Trivy Plugin, actual Trivy CLI, Gradle and Java versions).
-- Embed the plugin version into its own published build resources rather than inferring it from the consuming project or hardcoding a release number.
-- Query the selected Trivy executable using `--version`, including PATH-provided binaries, with an informational `unknown` fallback if version detection fails.
-- Add regression tests for embedded version metadata and Trivy output parsing plus Windows/Linux integration checks of real task headers.
-- Preserve the original automatic bootJar/jar rootfs scan, configuration cache and Isolated Projects behavior.
+- **Native Trivy reports:** replace the custom ASCII-only vulnerability template with Trivy's built-in `table` (new default) and `json` formats; the obsolete `outputStrategy` laboratory option is not included.
+- **Native UTF-8 files:** add optional `outputFile = 'build/reports/...'` and command-line `-PtrivyOutput=...` to write unchanged Trivy table/JSON reports using native `--output`; add `-PtrivyFormat=table|json` to override the format.
+- **Zero-configuration Windows/Eclipse output:** automatically adapt Unicode table borders to legible ASCII for console display without changing code pages, terminals or Eclipse settings. Preserve the complete Unicode report in files.
+- **Trivy diagnostics:** route informational `INFO`/`DEBUG` messages to normal Gradle logging instead of red Eclipse STDERR while preserving WARN/ERROR and nonzero scan exit codes.
+- **Version identification:** `trivy` and `trivyInstall` log their embedded plugin version, the actual resolved Trivy CLI version, Gradle version and Java runtime version.
+- **Regression coverage:** Windows/Linux native table and JSON scans, UTF-8 file integrity, CVE comparisons, correct ASCII borders, normal INFO output, failure handling and testable configuration.
+- Preserve the default `rootfs` JAR build/scan, explicit targets, exclusions, Configuration Cache and Isolated Projects compatibility.
 
 ## 0.1.3 — 2026-11-10
 

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'io.github.pitinga'
-version = '0.1.4-SNAPSHOT'
+version = '0.1.4'
 
 repositories {
     mavenCentral()
@@ -43,7 +43,7 @@ gradlePlugin {
             id = 'io.github.pitinga.trivy'
             implementationClass = 'io.github.pitinga.trivy.TrivyPlugin'
             displayName = 'Gradle Trivy Plugin'
-            description = 'Automatically install Trivy, build and scan Java/Spring Boot JARs for vulnerabilities with rootfs, or scan selected files and directories'
+            description = 'Install Trivy, build and scan Java/Spring Boot JARs, and generate native table or JSON vulnerability reports with optional UTF-8 output files'
             tags.set(['trivy', 'security', 'vulnerability', 'spring-boot', 'java'])
             compatibility(it) {
                 features {

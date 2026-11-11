@@ -19,4 +19,9 @@ class TrivyExtension {
     String scanners = 'vuln'
     String severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
     boolean ignoreUnfixed = false
+
+    /** Use Trivy's native table by default; JSON is also supported. */
+    String format = 'table'
+    /** Empty: console; set path to save native Trivy UTF-8 using --output. */
+    String outputFile = ''
 }

@@ -1,0 +1,5 @@
+pluginManagement {
+    // Always resolve the experimental local source, never the public Portal plugin.
+    includeBuild('..')
+}
+rootProject.name = 'trivy-output-lab'

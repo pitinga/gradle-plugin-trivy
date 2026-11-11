@@ -1,65 +1,88 @@
-# Troubleshooting and known limitations
+# Troubleshooting — Gradle Trivy Plugin 0.1.4
 
-[Back to README](../README.md) | [Configuration](CONFIGURATION.md) | [Examples](EXAMPLES.md)
+[README](../README.md) · [Configuration](CONFIGURATION.md) · [Examples](EXAMPLES.md)
 
-## `trivy fs .` reports `num=0` but `rootfs` detects vulnerabilities
+## Trivy table characters are corrupt in Windows, Eclipse, or PowerShell
 
-This can happen in Java projects. The user-validated example had vulnerable `com.rabbitmq:amqp-client` inside a compiled Spring Boot JAR. Direct `trivy fs .` identified no language-specific files, while `trivy rootfs .` detected the application JAR and its ten findings.
+Version **0.1.4** uses Trivy's **native table** format. Without a report file, Windows console output is automatically adapted to readable ASCII borders (`+`, `-`, `|`) to avoid incompatible legacy code pages. **No `chcp`, PowerShell output encoding, Eclipse preference or environment change is required.**
 
-Different modes and targets have different coverage. **No findings** or `num=0` does *not* demonstrate that an application is secure. Use the default `.\gradlew trivy` to build and scan the packaged JAR with `rootfs`.
+A native UTF-8 report file preserves Trivy's Unicode borders:
 
-## `trivy fs build/libs/app.jar` seems clean
+~~~powershell
+.\gradlew trivy '-PtrivyOutput=build/reports/trivy-table.txt'
+~~~
 
-The plugin warns that `fs` on a compiled JAR may fail to inspect Java dependencies. Scan the JAR with `rootfs` instead. In version 0.1.2+, leave `scanMode = 'rootfs'` and either omit `target` entirely (automatic build) or specify the existing JAR's path.
+If you see Unicode/mojibake in the console, confirm the plugin version banner reads `Gradle Trivy Plugin : 0.1.4` and that you are not inadvertently loading an older Portal release or stale source checkout.
 
-## Failed because the configured target doesn't exist
+## INFO appears in red in Eclipse
 
-With an explicit `target`, version 0.1.2+ does not automatically run `bootJar` or `jar`. Build the application first:
+Trivy itself sends normal `INFO` diagnostics to process STDERR. The plugin routes `INFO` and `DEBUG` through normal Gradle lifecycle messages; `WARN`, `ERROR` and unknown STDERR are still diagnostic. A nonzero Trivy exit code remains a failure. If you see red INFO lines, verify the 0.1.4 version banner.
+
+## `output = '...'` fails as an unknown property
+
+The configuration name is **`outputFile`**, not `output`:
+
+~~~groovy
+trivy {
+    format = 'json'
+    outputFile = 'build/reports/trivy.json'
+}
+~~~
+
+One-off Gradle override: `-PtrivyOutput=build/reports/trivy.json`. The report path is relative to the consuming project directory unless absolute.
+
+## Why did the full report disappear from the console after setting outputFile?
+
+This is deliberate: Trivy CLI `--output` writes the report to the file. Gradle still shows task/version/scanner diagnostics. Remove `outputFile` or leave it blank to show the report on the console instead.
+
+## Is there a custom format, outputStrategy or template option?
+
+No. Version 0.1.4 supports Trivy's **native** `table` and `json` formats only. Set `format = 'table'` (default) or `format = 'json'`. The previous custom template and experimental `outputStrategy` options are not part of the current plugin.
+
+## Build is successful even though HIGH CVEs were found
+
+`failOnVulnerability = false` is the default. A vulnerability report does **not** fail the build unless the setting is enabled. For a security gate:
+
+~~~groovy
+trivy {
+    severity = 'HIGH,CRITICAL'
+    failOnVulnerability = true
+}
+~~~
+
+Other Trivy CLI/runtime failures still fail the task.
+
+## `trivy fs .` reports `num=0` but the JAR scan finds CVEs
+
+`fs` on the source project can miss Java libraries present inside a compiled JAR. Use the recommended `rootfs` JAR scan with:
+
+~~~powershell
+.\gradlew trivy
+~~~
+
+A scan with zero findings does not establish that software is safe; scope and format matter.
+
+## `trivy fs build/libs/application.jar` seems clean
+
+For Java libraries packed inside a JAR, use `rootfs` (default). `fs` is not necessarily suited to compiled JAR dependency inspection.
+
+## The requested scan target doesn't exist
+
+An explicit `target` does **not** trigger compilation or packaging:
 
 ~~~powershell
 .\gradlew bootJar trivy '-PtrivyTarget=build/libs/YOUR_APPLICATION.jar'
 ~~~
 
-Without a `target`, the plugin selects `bootJar` (or `jar`) and builds it automatically.
+Without an explicit target, the plugin automatically depends on `bootJar` or `jar`.
 
-## Why was the plugin's own `trivy.exe` reported as vulnerable?
+## Trivy detects its own cached executable
 
-If the plugin installed Trivy into `<project>/.gradle/trivy`, a directory scan such as `trivy rootfs .` can scan that executable. Version 0.1.2+ automatically skips its *own* cached installation when the cache is physically under the requested directory. You can also configure `skipDirs = ['.gradle/trivy']`.
+When scanning a directory, the plugin automatically excludes its own managed Trivy binary cache if physically located under that directory. You may additionally configure `skipDirs = ['.gradle/trivy']`. For the default single-JAR scan, no cache directory exclusion is needed.
 
-With standalone Trivy:
+## `version = 'latest'` still uses an older installed Trivy
 
-~~~powershell
-trivy rootfs . --scanners vuln --skip-dirs .gradle/trivy
-~~~
-
-This prevents self-analysis but does not remove or fix an actual vulnerability in the executable.
-
-## Why doesn't the plugin show secrets?
-
-The default is `scanners = 'vuln'` and its ASCII report is designed around vulnerability findings. For secrets, run Trivy directly with its normal output:
-
-~~~powershell
-trivy rootfs . --scanners secret
-~~~
-
-A private key found in your source tree should be treated as potentially exposed. If real, rotate/revoke it; excluding it from scans is not remediation. Protect logs that could contain secret fragments.
-
-## Gradle says `BUILD SUCCESSFUL` although CVEs were found
-
-The default `failOnVulnerability = false` uses Trivy exit code `0` for findings. To fail the build for selected severities:
-
-~~~groovy
-trivy {
-    failOnVulnerability = true
-    severity = 'HIGH,CRITICAL'
-}
-~~~
-
-Actual command errors and download/checksum errors still fail the task.
-
-## I configured `version = 'latest'` but the old Trivy binary runs
-
-The default `preferInstalled = true` uses the first compatible Trivy executable in `PATH`, regardless of version. Force a requested cached/downloaded version:
+The default `preferInstalled = true` gives priority to the CLI on PATH. To force the requested latest stable Trivy download/cache, use:
 
 ~~~groovy
 trivy {
@@ -68,37 +91,33 @@ trivy {
 }
 ~~~
 
-Note that the **published plugin version** is a separate setting in `plugins { id 'io.github.pitinga.trivy' version '0.1.1' }`.
+The Gradle **plugin** version in `plugins { ... }` is separate from this Trivy **CLI** version.
 
-## Shared cache is not writable
+## Shared Trivy cache isn't writable
 
-On permission-related failure under `GRADLE_USER_HOME/trivy`, the plugin falls back to `<root-project>/.gradle/trivy`. It then reuses that verified binary. This is expected. Trivy's vulnerability DB cache is separate.
+A permission-related failure writing `GRADLE_USER_HOME/trivy` triggers a fallback to the root project's `.gradle/trivy`. This is expected. The Trivy vulnerability DB cache is separate.
 
 ## PowerShell reports `Task '.jar' not found`
 
-Quote the complete command-line property, including the leading `-P`:
+Quote the entire `-P` argument, including its prefix:
 
 ~~~powershell
-.\gradlew trivy '-PtrivyTarget=build/libs/app.jar'
+.\gradlew trivy '-PtrivyTarget=build/libs/application.jar'
 ~~~
 
-This property requires version 0.1.2+; do not use it with the older 0.1.1 version.
+## Isolated Projects fails before `:trivy` executes
 
-## Published plugin rejects `target` or `skipDirs`
+A configuration error in another Gradle plugin or your consuming `build.gradle` can prevent the task graph from being created. Gradle 9.9 can report `Project ':' cannot access task dependencies directly` for code that inspects another task's dependencies while configuring outgoing publication artifacts. Correct the consumer build script or test the plugin in the standalone lab. Successful plugin execution with `--isolated-projects` should store a configuration cache entry, then reuse it on the next run.
 
-The Plugin Portal's **0.1.1** version does not support these two properties. Upgrade to **0.1.2 or later**, which is now publicly available. The original default JAR scan remains unchanged.
+## Secret scans
 
-## Eclipse console or Gradle deprecation warnings
+The default scanner is `vuln`. With the native Trivy formats, additional Trivy scanners can be configured using `scanners`, but their coverage depends on the selected Trivy version, scan mode and target. Review sensitive outputs carefully: secret-finding reports can contain sensitive information. Do not treat exclusions or missing results as remediation.
 
-Use `.\gradlew trivy --warning-mode all` or put `--warning-mode all` under **Run Configurations → Gradle Task → Arguments → Program Arguments**. The ASCII vulnerability template avoids Unicode drawing issues on the Windows Eclipse console.
+## Requirements and limits
 
-## Known boundaries
-
-- No automatic container-image or registry scanning.
-- No full secret scanner output in the custom template.
-- No automatic build/packaging when an explicit target is configured.
-- In version 0.1.2+, a directory scan can include artifacts and binaries unrelated to the application; review findings by target.
-- Windows and Linux CI validate Gradle 8.14.3, 9.1.0 and 9.9.0; macOS and Linux ARM64 installer support exists but is not in that matrix.
-- Gradle 10 has not been validated.
-- SHA-256 verification against official release files checks archive integrity; it is not independent code signing or attestation.
-- Cached installations retain a verification marker; executable bytes are not rehashed on every invocation.
+- Java/Gradle must be compatible with each other. The CI matrix covers Gradle 8.14.3, 9.1.0 and 9.9.0 (JDK 17), and Gradle 9.9.0 with JDK 25, on Windows/Linux.
+- Windows x64 and Linux x64 scanning is exercised in CI; other listed installer architectures are not in that matrix.
+- Gradle 10 is untested.
+- The plugin does not automatically aggregate all projects or scan container registries/images.
+- SHA-256 verification against official release checksums verifies archive integrity, not independent cryptographic signing.
+- Verified cached executable files are not re-hashed on every task execution.
