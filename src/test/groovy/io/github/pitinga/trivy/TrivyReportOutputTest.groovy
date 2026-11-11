@@ -33,6 +33,10 @@ class TrivyReportOutputTest {
         assertTrue(shown.contains('CVE-2026-63337'))
         assertTrue(shown.contains('Acao'))
         assertTrue(shown.contains('+-----+----------+'))
+        assertTrue(shown.startsWith('+-----+----------+\n'), 'The top-left table corner must be +')
+        assertTrue(shown.contains('\n+-----+----------+\n'), 'The junction row must retain +')
+        assertTrue(shown.endsWith('+-----+----------+\n'), 'The bottom-left table corner must be +')
+        assertFalse(shown.startsWith('-'), 'A corner must never be rendered as -')
         assertTrue(shown.contains('| Acao |'))
         assertTrue(shown.chars().allMatch { it < 128 }, 'Console must use only ASCII')
         assertFalse(shown.contains('┌'))
@@ -47,6 +51,23 @@ class TrivyReportOutputTest {
         assertEquals(new JsonSlurper().parseText(original), new JsonSlurper().parseText(shown))
         assertTrue(shown.contains('CVE-2026-63337'))
         assertTrue(shown.contains('\\u'))
+    }
+
+    @Test
+    void classifiesTimestampedTrivyInfoWithoutConfusingItWithErrors() {
+        assertEquals('INFO', TrivyReportOutput.diagnosticLevel(
+            '2026-11-11T10:29:32-03:00\tINFO\t[vuln] Vulnerability scanning is enabled'))
+        assertEquals('INFO', TrivyReportOutput.diagnosticLevel(
+            '2026-11-11T10:29:32-03:00\tINFO\tNumber of language-specific files\tnum=1'))
+        assertEquals('INFO', TrivyReportOutput.diagnosticLevel('INFO Scanner ready'))
+        assertEquals('INFO', TrivyReportOutput.diagnosticLevel('DEBUG loading database'))
+        assertEquals('WARN', TrivyReportOutput.diagnosticLevel(
+            '2026-11-11T10:29:32-03:00\tWARN\tDatabase needs updating'))
+        assertEquals('WARN', TrivyReportOutput.diagnosticLevel('WARNING Legacy setting'))
+        assertEquals('ERROR', TrivyReportOutput.diagnosticLevel(
+            '2026-11-11T10:29:32-03:00\tERROR\tUnable to load database'))
+        assertEquals('ERROR', TrivyReportOutput.diagnosticLevel('FATAL failed to scan'))
+        assertEquals('ERROR', TrivyReportOutput.diagnosticLevel('unclassified stderr must remain an error'))
     }
 
     @Test
