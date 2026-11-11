@@ -41,6 +41,24 @@ jobs:
           pwsh -File ./scripts/Test-Trivy-Output.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Assert Trivy INFO diagnostics do not use stderr
+        shell: pwsh
+        run: |
+          gradle -p lab-output trivy --no-daemon --warning-mode all 1> trivy-standard-output.log 2> trivy-standard-error.log
+          $status = $LASTEXITCODE
+          $stdout = Get-Content trivy-standard-output.log -Raw -Encoding utf8
+          $stderr = Get-Content trivy-standard-error.log -Raw -Encoding utf8
+          if ($status -ne 0) { throw "Scan failed with exit code $status. STDOUT: $stdout STDERR: $stderr" }
+          if ($stdout -notmatch '\bINFO\s+\[vuln\]') { throw "Expected Trivy INFO message on stdout. Output: $stdout" }
+          if ($stderr -match '\bINFO\s+\[vuln\]') { throw "Trivy INFO must not be forwarded to stderr. Error output: $stderr" }
+          if ($stdout -notmatch 'BUILD SUCCESSFUL') { throw "Gradle build failed. Output: $stdout" }
+          if ($IsWindows) {
+            $line = @($stdout -split '\r?\n' | Where-Object { $_.StartsWith('+---') })
+            if ($line.Count -eq 0) { throw 'The top border must start with +, not -' }
+            if ($stdout -match '(?m)^-{3,}\+') { throw 'Malformed top border found in the Windows console' }
+          }
+          Write-Host 'Validated: INFO on stdout, native scan successful, table corners correctly rendered.'
+
       - name: Upload output comparison evidence
         if: always()
         uses: actions/upload-artifact@v7
