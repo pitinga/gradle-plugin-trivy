@@ -66,9 +66,9 @@ class TrivyReportOutput {
             int cp = value.codePointAt(offset)
             offset += Character.charCount(cp)
             if (cp >= 0x2500 && cp <= 0x257F) {
-                if (cp in [0x2500, 0x2501, 0x2504, 0x2505, 0x2508, 0x2509, 0x250C, 0x250D, 0x2550]) {
+                if (cp in [0x2500, 0x2501, 0x2504, 0x2505, 0x2508, 0x2509, 0x254C, 0x254D, 0x2550]) {
                     borderMapped.append('-')
-                } else if (cp in [0x2502, 0x2503, 0x2506, 0x2507, 0x250A, 0x250B, 0x250E, 0x250F, 0x2551]) {
+                } else if (cp in [0x2502, 0x2503, 0x2506, 0x2507, 0x250A, 0x250B, 0x254E, 0x254F, 0x2551]) {
                     borderMapped.append('|')
                 } else {
                     borderMapped.append('+')
@@ -114,6 +114,23 @@ class TrivyReportOutput {
             }
         }
         return result.toString()
+    }
+
+    /**
+     * Classify Trivy's diagnostic stream by its actual log severity, not by
+     * whether the CLI happened to send that line to stderr. The timestamped
+     * output of current Trivy releases is typically:
+     *   2026-11-11T10:29:32-03:00<TAB>INFO<TAB>[vuln] ...
+     * Unknown stderr remains an error so unexpected failures stay visible.
+     */
+    static String diagnosticLevel(String line) {
+        String content = (line ?: '').trim()
+        def match = content =~ /(?i)^(?:\d{4}-\d{2}-\d{2}[T ]\S+\s+)?(INFO|DEBUG|WARN|WARNING|ERROR|FATAL)(?:\s|$)/
+        if (!match.find()) return 'ERROR'
+        String level = match.group(1).toUpperCase(Locale.ROOT)
+        if (level == 'INFO' || level == 'DEBUG') return 'INFO'
+        if (level == 'WARN' || level == 'WARNING') return 'WARN'
+        return 'ERROR'
     }
 
     static String portableConsole(String format, String text) {
