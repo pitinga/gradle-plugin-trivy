@@ -156,10 +156,10 @@ abstract class TrivyScanTask extends TrivyTaskBase {
             ensureParentDirectory(userReport)
             Files.deleteIfExists(userReport.toPath())
             arguments.addAll(['--output', userReport.absolutePath, requestedTarget])
-            execOperations.exec { spec ->
-                spec.executable = executable.absolutePath
-                spec.args(arguments)
-                spec.workingDir = baseDir
+            int exitCode = executeTrivy(executable, arguments, baseDir)
+            if (exitCode != 0) {
+                throw new GradleException('Trivy scan exited with code ' + exitCode +
+                    '; report destination: ' + userReport.absolutePath)
             }
             if (!userReport.isFile()) {
                 throw new GradleException('Trivy did not create the report: ' + userReport.absolutePath)
@@ -177,10 +177,9 @@ abstract class TrivyScanTask extends TrivyTaskBase {
             // On platforms where UTF-8 is the usual console encoding, use exact
             // native table/json output without intermediary processing.
             arguments.add(requestedTarget)
-            execOperations.exec { spec ->
-                spec.executable = executable.absolutePath
-                spec.args(arguments)
-                spec.workingDir = baseDir
+            int exitCode = executeTrivy(executable, arguments, baseDir)
+            if (exitCode != 0) {
+                throw new GradleException('Trivy scan exited with code ' + exitCode)
             }
             return
         }
@@ -192,12 +191,7 @@ abstract class TrivyScanTask extends TrivyTaskBase {
             chosenFormat == 'json' ? '.json' : '.txt').toFile()
         try {
             arguments.addAll(['--output', temporary.absolutePath, requestedTarget])
-            def result = execOperations.exec { spec ->
-                spec.executable = executable.absolutePath
-                spec.args(arguments)
-                spec.workingDir = baseDir
-                spec.ignoreExitValue = true
-            }
+            int exitCode = executeTrivy(executable, arguments, baseDir)
             if (temporary.isFile()) {
                 // Stream the native Trivy report line-by-line instead of holding a
                 // potentially large JSON/table report in the Gradle daemon heap.
@@ -208,12 +202,47 @@ abstract class TrivyScanTask extends TrivyTaskBase {
                     }
                 }
             }
-            if (result.exitValue != 0) {
-                throw new GradleException('Trivy scan exited with code ' + result.exitValue)
+            if (exitCode != 0) {
+                throw new GradleException('Trivy scan exited with code ' + exitCode)
             }
         } finally {
             Files.deleteIfExists(temporary.toPath())
         }
+    }
+
+    /**
+     * Trivy writes INFO diagnostics to the process stderr stream. Passing the
+     * stream straight through to Gradle paints these normal lines red in Eclipse.
+     * Capture the diagnostics, decode UTF-8 and relay each line with its actual
+     * severity. WARN/ERROR and unrecognized stderr are never hidden.
+     *
+     * This is called inside @TaskAction and does not access Project. The
+     * process exit code remains authoritative, even when only INFO was logged.
+     */
+    private int executeTrivy(File executable, List<String> arguments, File directory) {
+        ByteArrayOutputStream diagnosticBytes = new ByteArrayOutputStream()
+        def result = execOperations.exec { spec ->
+            spec.executable = executable.absolutePath
+            spec.args(arguments)
+            spec.workingDir = directory
+            spec.errorOutput = diagnosticBytes
+            spec.ignoreExitValue = true
+        }
+        TrivyReportOutput.fromUtf8(diagnosticBytes.toByteArray()).eachLine { line ->
+            if (!line.trim()) return
+            switch (TrivyReportOutput.diagnosticLevel(line)) {
+                case 'INFO':
+                    logger.lifecycle(line)
+                    break
+                case 'WARN':
+                    logger.warn(line)
+                    break
+                default:
+                    logger.error(line)
+                    break
+            }
+        }
+        return result.exitValue
     }
 
     private static void ensureParentDirectory(File file) {
