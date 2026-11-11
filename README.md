@@ -1,177 +1,179 @@
 # Gradle Trivy Plugin
 
-> **EXPERIMENTAL BRANCH: native Trivy output, no terminal changes.** In this branch (not the published v0.1.3), `trivy` uses Trivy's native `table` report by default, supports `json` and `-PtrivyOutput=...`, and automatically renders a codepage-safe ASCII view in Windows consoles. The custom template and `outputStrategy` are removed **only from this branch**. See [OUTPUT-LAB](docs/OUTPUT-LAB.md) for tests and details. The `main` branch and published plugin are unchanged.
+Scan Java and Spring Boot builds with the official [Trivy](https://trivy.dev/) CLI, directly from Gradle, Eclipse/Buildship and CI/CD. Automatically build a JAR, find or install a verified Trivy executable, and generate **native Trivy table or JSON reports**.
 
----
+**Current version: 0.1.4** · **Plugin ID: `io.github.pitinga.trivy`**
 
-**Automated vulnerability scanning for Java and Spring Boot builds.** Build your application JAR, locate or securely install [Trivy](https://trivy.dev/), and display vulnerability findings directly in Gradle, Eclipse or CI/CD logs.
+[Gradle Plugin Portal](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [Configuration](docs/CONFIGURATION.md) · [Examples](docs/EXAMPLES.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Changelog](CHANGELOG.md)
 
-[**Gradle Plugin Portal**](https://plugins.gradle.org/plugin/io.github.pitinga.trivy) · [**Configuration reference**](docs/CONFIGURATION.md) · [**Usage examples**](docs/EXAMPLES.md) · [**Troubleshooting**](docs/TROUBLESHOOTING.md) · [**Changelog**](CHANGELOG.md) · [**GitHub Actions**](https://github.com/pitinga/gradle-plugin-trivy/actions)
+## Quick start
 
-> **Current published release:** `0.1.3` (latest) on the Gradle Plugin Portal, with confirmed Isolated Projects and Configuration Cache compatibility. Versions `0.1.2` and `0.1.1` remain available. Features such as `target` and `skipDirs` require **0.1.2 or later**, not 0.1.1.
-
-## Quick start — version 0.1.3
-
-Add the plugin to your existing **Groovy DSL** `build.gradle`:
+Add the plugin to the existing `plugins` block of your **Groovy DSL** `build.gradle`:
 
 ~~~groovy
 plugins {
-    id 'io.github.pitinga.trivy' version '0.1.3'
+    id 'java' // or your existing Spring Boot plugin
+    id 'io.github.pitinga.trivy' version '0.1.4'
 }
 ~~~
 
-This plugin works alongside your existing `org.springframework.boot` plugin or the standard `java` plugin. Run:
+Run from the project directory:
 
 ~~~powershell
 .\gradlew trivy
 ~~~
 
-**What happens by default?** The task runs `bootJar` when available (otherwise `jar`), then performs the equivalent of:
+**No additional configuration is required.** When `target` is blank, the task builds `bootJar` (if present), otherwise `jar`, and scans the resulting artifact using `trivy rootfs`. The default output format is Trivy's **native `table`**, not a custom vulnerability template.
+
+The plugin selects a Trivy executable from `PATH` by default, or installs an official release with SHA-256 verification if needed. The Trivy executable version is independent of the Gradle plugin version.
+
+## Tasks
+
+| Task | Purpose |
+| --- | --- |
+| `trivy` | Build the default JAR when needed, scan it and produce a report |
+| `trivyInstall` | Find or install Trivy without scanning |
+
+Both tasks print a runtime banner showing the **Gradle Trivy Plugin**, selected **Trivy CLI**, **Gradle** and **Java** versions. For example:
 
 ~~~text
-trivy rootfs <path-to-generated-jar> --scanners vuln
+==================================================
+Gradle Trivy Plugin : 0.1.4
+Trivy CLI           : 0.76.2
+Gradle              : 9.9.0
+Java                : 25
+==================================================
 ~~~
 
-The task automatically finds Trivy in `PATH` or installs a verified official release when missing. Findings appear in the Gradle console. By default, detected vulnerabilities **do not fail the build**; command/scan errors still fail.
+These are illustrative runtime versions. The plugin version is read from its packaged metadata; the CLI version is queried from the **actual selected executable**. If `preferInstalled = true`, the executable in `PATH` takes precedence even when its version differs from `trivy.version`.
 
-For a CI security gate:
+## All configuration options and defaults
+
+Place optional settings in `build.gradle`:
+
+~~~groovy
+trivy {
+    version = 'latest'                 // Trivy CLI release to download, not plugin version
+    autoInstall = true
+    preferInstalled = true
+    scanMode = 'rootfs'                // rootfs or fs
+    target = ''                        // blank = automatically build and scan bootJar/jar
+    skipDirs = []                      // only relevant to supported directory scans
+    scanners = 'vuln'
+    severity = 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+    ignoreUnfixed = false
+    failOnVulnerability = false
+    format = 'table'                   // native Trivy table or json
+    outputFile = ''                    // empty = console; path = native UTF-8 file
+}
+~~~
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `version` | `'latest'` | Trivy **CLI** version used when installing/downloading |
+| `autoInstall` | `true` | Download Trivy if it cannot otherwise be resolved |
+| `preferInstalled` | `true` | Prefer installed Trivy from `PATH` over selected download version |
+| `scanMode` | `'rootfs'` | Trivy `rootfs` or `fs` |
+| `target` | `''` | Automatically built JAR; alternatively an existing file/directory |
+| `skipDirs` | `[]` | Repeated `--skip-dirs` patterns; skips matching directories |
+| `scanners` | `'vuln'` | Trivy scanners, such as `vuln` |
+| `severity` | `'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'` | Severity filter |
+| `ignoreUnfixed` | `false` | Pass `--ignore-unfixed` when enabled |
+| `failOnVulnerability` | `false` | Fail the build when Trivy reports findings (according to the scan settings) |
+| `format` | `'table'` | **`table` or `json`**, both native Trivy formats |
+| `outputFile` | `''` | Empty: console; otherwise Trivy `--output` with a project-relative or absolute path |
+
+### Native reports and output files
+
+The Trivy CLI generates all reports. **No custom report template or `outputStrategy` option exists in 0.1.4.**
+
+| Desired output | PowerShell 7 command |
+| --- | --- |
+| Table in console (default) | `.\gradlew trivy` |
+| Explicit native table | `.\gradlew trivy '-PtrivyFormat=table'` |
+| JSON in console | `.\gradlew trivy '-PtrivyFormat=json'` |
+| Native UTF-8 table in file | `.\gradlew trivy '-PtrivyOutput=build/reports/trivy.txt'` |
+| Native UTF-8 JSON in file | `.\gradlew trivy '-PtrivyFormat=json' '-PtrivyOutput=build/reports/trivy.json'` |
+
+When `outputFile` is configured, Trivy writes the complete report **to the file instead of the console**, following its native `--output` behavior. Paths are relative to the consuming Gradle project directory unless absolute. Reports are overwritten on repeated scans.
+
+On Windows, legacy code pages can corrupt the Unicode box characters in Trivy's native table. **No terminal, PowerShell, code-page or Eclipse settings are required:** the plugin lets Trivy render its table, then automatically converts only the **console presentation** to readable ASCII borders (`+`, `-`, `|`). Accented or non-ASCII characters may be simplified in the Windows console. **The report saved to disk remains the exact native UTF-8 output**, including Unicode table borders and full original descriptions. On Linux/macOS, console output is passed through natively.
+
+Likewise, Trivy's normal `INFO` diagnostics are shown as normal Gradle messages instead of red STDERR lines in Eclipse. `WARN` and `ERROR` remain diagnostic messages; nonzero Trivy exit codes are not hidden.
+
+### Gradle `-P` overrides
+
+The following are **per-execution** overrides; they do not require edits to `build.gradle`:
+
+| Property | Affects |
+| --- | --- |
+| `-PtrivyScanMode=rootfs` or `fs` | `scanMode` |
+| `-PtrivyTarget=...` | `target` |
+| `-PtrivySkipDirs=dir1,dir2` | `skipDirs` (replaces entire DSL list) |
+| `-PtrivyFormat=table` or `json` | `format` |
+| `-PtrivyOutput=...` | `outputFile` |
+
+**In PowerShell 7, quote each complete `-P` argument** as in the examples. Other DSL properties, such as `preferInstalled` and `version`, are configured in `trivy { ... }`.
+
+## Scanning an application vs. a project directory
+
+| Scan | Builds JAR automatically? | Notes |
+| --- | --- | --- |
+| `.\gradlew trivy` | **Yes** | Recommended for Java/Spring Boot: `rootfs` on built JAR |
+| `.\gradlew bootJar trivy '-PtrivyTarget=.'` | **No** (but `bootJar` is explicitly invoked) | `rootfs .` on existing project files, including built JARs |
+| `.\gradlew trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.'` | **No** | `fs .` scans recognized files/metadata; may miss dependencies inside packaged JARs |
+| `.\gradlew trivy '-PtrivyTarget=build/libs/app.jar'` | **No** | Scan a specific **existing** JAR with `rootfs` |
+
+An explicit `target` does **not** build the target for you. In a directory scan, the plugin excludes its own managed Trivy installation cache if it is physically inside the target directory. User `skipDirs` patterns can also exclude files; choose them carefully to avoid false negatives.
+
+## Eclipse / Buildship
+
+Import or refresh the consuming Gradle project, then run the **`trivy`** task using **Gradle Tasks** or **Run Configurations → Gradle Task**. Pass `-PtrivyFormat=json`, `-PtrivyOutput=...` or `--isolated-projects` in **Program Arguments**, not JVM Arguments. You do **not** need `chcp 65001` or any Eclipse encoding change.
+
+The plugin supports **Configuration Cache** and Gradle **Isolated Projects** (incubating). Trivy scans still execute when the configuration cache is reused.
+
+## CI / security gate
+
+By default, a detected vulnerability is **reported but does not fail the build**. To fail a build for findings that match your security policy:
 
 ~~~groovy
 trivy {
     severity = 'HIGH,CRITICAL'
     ignoreUnfixed = true
     failOnVulnerability = true
+    format = 'json'
+    outputFile = 'build/reports/trivy.json'
 }
 ~~~
 
-## What this plugin provides
+Then run `.\gradlew trivy` on your CI agent. Actual CLI errors, checksum mismatches and scan failures also fail the task. A scan with no findings is not proof of security: supported formats, targets, scanners and the current vulnerability database determine coverage.
 
-| Capability | Behavior |
+For Azure DevOps, GitHub Actions, and practical configuration, see [Examples](docs/EXAMPLES.md).
+
+## Trivy installation and caching
+
+1. Check `PATH` first when `preferInstalled = true`.
+2. Otherwise resolve the requested Trivy CLI version (`'latest'` selects the latest stable GitHub release for download), then reuse a verified cache or install an official release with SHA-256 validation.
+3. Use `GRADLE_USER_HOME/trivy` normally; fall back to `<root-project>/.gradle/trivy` on permission-related cache errors only.
+
+There is no global Trivy installation or modification of `PATH`. Trivy's vulnerability database cache is separate from the executable cache.
+
+## Compatibility and limitations
+
+| Environment | Validation |
 | --- | --- |
-| Automatic JAR build and scan | `bootJar` preferred, otherwise `jar`; `rootfs` by default |
-| Trivy executable discovery | Uses Trivy already installed in `PATH` unless disabled |
-| Automatic installation | Official GitHub release download, SHA-256 validation |
-| Cache reuse | Shared Gradle user home; fallback to project cache on permission errors |
-| Cross-platform | Windows x64; Linux x64/ARM64; macOS x64/ARM64 installer support |
-| Vulnerability reporting | ASCII-friendly CVE list showing severity, package, installed/fixed version and title |
-| Flexible scan target | Explicit file or directory target — available in 0.1.2+ |
-| Directory exclusions | `skipDirs`, with automatic self-cache exclusion — available in 0.1.2+ |
-| Gradle configuration cache | Tested in CI; scan results re-run when the task executes |
-| Gradle Isolated Projects | Declared compatible in 0.1.3; Gradle 9.9 multi-project tests on Windows/Linux (JDK 17/25) |
+| Gradle 8.14.3, 9.1.0 and 9.9.0 / JDK 17 | Windows and Linux CI matrix |
+| Gradle 9.9.0 / JDK 25 | Windows and Linux CI matrix |
+| Gradle 9.9.0 / Isolated Projects | Windows and Linux; independent multi-project Gradle consumer |
+| Windows x64 / Linux x64 | Real Trivy scans and report tests |
+| Linux ARM64 / macOS x64 / macOS ARM64 | Installer implementation available; not included in CI matrix |
+| Gradle 10 | Not validated |
 
-## Available tasks
+`trivy` scans one selected target per task execution. Container image/registry scan and multi-project aggregation are not provided automatically. SHA-256 validation checks downloaded archives against official checksums; it is not an independent artifact signature.
 
-| Task | Description |
-| --- | --- |
-| `trivy` | Build and scan the application JAR by default. Installs Trivy if necessary |
-| `trivyInstall` | Only find/install Trivy; do not build or scan the application |
+## Development: use the source checkout instead of the published plugin
 
-Both tasks are available from Eclipse Buildship's **Gradle Tasks** view.
-
-
-### Runtime version information (0.1.4 development)
-
-Both `trivy` and `trivyInstall` print a version header when they run:
-
-~~~text
-==================================================
-Gradle Trivy Plugin : 0.1.4-SNAPSHOT
-Trivy CLI           : 0.76.2
-Gradle              : 9.9.0
-Java                : 25.0.1
-==================================================
-~~~
-
-These values are illustrative. The plugin version comes from **metadata embedded in the plugin's own build artifact**, not from the consuming project's version. The Trivy CLI version is queried from the **actual resolved executable** using `trivy --version` (even if a PATH executable overrides the requested version). Gradle and Java versions reflect the runtime executing the task. If the CLI version cannot be determined, the header shows `unknown` without masking a scan error.
-
-**Availability:** this header is implemented in the unreleased `0.1.4-SNAPSHOT` branch; the published `0.1.3` does not print it. The version header does not change the default JAR/rootfs scan or the behavior of `trivyInstall`.
-
-
-## Configuration at a glance
-
-Options are configured inside `trivy { ... }` in your `build.gradle`.
-
-| Property | Version 0.1.1 default | Version 0.1.2 default | Description |
-| --- | --- | --- | --- |
-| `version` | `'0.76.2'` | `'latest'` | **Trivy executable** version used when downloading |
-| `autoInstall` | `true` | `true` | Download if missing |
-| `preferInstalled` | `true` | `true` | Prefer the PATH executable, regardless of version |
-| `scanMode` | `'rootfs'` | `'rootfs'` | `rootfs` or `fs` |
-| `target` | Not supported | `''` | Blank: built JAR; `'.'`: project directory; or another path |
-| `skipDirs` | Not supported | `[]` | Paths/globs excluded from a directory scan |
-| `scanners` | `'vuln'` | `'vuln'` | Trivy scanner selector; report template is vulnerability-oriented |
-| `severity` | `'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'` | Same | Severity filter |
-| `ignoreUnfixed` | `false` | `false` | Ignore vulnerabilities lacking a fix |
-| `failOnVulnerability` | `false` | `false` | Return a failing exit code for reportable findings |
-
-**Important distinction:** `version = 'latest'` selects the Trivy **CLI version**, not the Gradle plugin version. With `preferInstalled = true`, a Trivy binary in `PATH` takes priority even if it is older. Set `preferInstalled = false` to honor a specified downloaded/cached version.
-
-For the complete semantics, see [Configuration reference](docs/CONFIGURATION.md).
-
-## Scan mode and target — avoid false negatives
-
-Our Java tests found a significant coverage difference:
-
-| Scan | What it scans | Java JAR vulnerability coverage |
-| --- | --- | --- |
-| `trivy rootfs <built JAR>` | Packaged application libraries | **Recommended default** |
-| `trivy rootfs .` | Existing project files and built artifacts | Can include the packaged JAR and other binaries |
-| `trivy fs .` | Recognized project/dependency metadata | **May miss Java dependencies** present in the built JAR |
-| `trivy fs app.jar` | A JAR passed to filesystem mode | **Not recommended**; may detect zero language-specific files |
-
-A `num=0` language-specific files message or an empty report does **not** establish that an application is secure.
-
-In version 0.1.2+, `target = '.'` does **not** build a JAR automatically. To include up-to-date build outputs, explicitly run `bootJar` or `jar` first.
-
-## Additional scan options — version 0.1.2+
-
-The following examples require **0.1.2 or later**. They are not supported by version 0.1.1.
-
-### Scan the whole project with rootfs
-
-~~~powershell
-.\gradlew bootJar trivy '-PtrivyTarget=.'
-~~~
-
-This inspects existing supported files in the project, including generated JARs. The plugin automatically excludes its own cached Trivy executable when the installation directory is within the scan target.
-
-### Use fs to scan project metadata
-
-~~~powershell
-.\gradlew trivy '-PtrivyScanMode=fs' '-PtrivyTarget=.'
-~~~
-
-### Scan a specific existing JAR
-
-~~~powershell
-.\gradlew bootJar trivy '-PtrivyTarget=build/libs/app.jar'
-~~~
-
-Replace `app.jar` with your actual artifact name.
-
-### Skip selected directories
-
-~~~groovy
-trivy {
-    scanMode = 'rootfs'
-    target = '.'
-    skipDirs = ['.gradle/trivy', 'build/tmp', '**/node_modules']
-}
-~~~
-
-The equivalent one-off PowerShell command is:
-
-~~~powershell
-.\gradlew trivy '-PtrivyTarget=.' '-PtrivySkipDirs=.gradle/trivy,build/tmp,**/node_modules'
-~~~
-
-`-PtrivySkipDirs` **overrides** the list from `build.gradle`. Each entry becomes an independent `--skip-dirs` flag. For directory targets, the plugin also automatically excludes its own Trivy cache if it is located inside the target. Exclusions reduce scan coverage; only exclude paths deliberately.
-
-See [Usage examples](docs/EXAMPLES.md) for Eclipse, Spring Boot, Java, GitHub Actions and Azure DevOps.
-
-## Testing the plugin from source
-
-Clone this repository next to your application checkout. In the consuming project's `settings.gradle`, before other settings:
+In the consuming project's `settings.gradle`:
 
 ~~~groovy
 pluginManagement {
@@ -179,60 +181,8 @@ pluginManagement {
 }
 ~~~
 
-Then add the plugin **without a version** to the existing `plugins` block:
+In the consuming project's `build.gradle`, declare `id 'io.github.pitinga.trivy'` **without a version**. This is for local development only; normal consumers should use the published `0.1.4` version above.
 
-~~~groovy
-plugins {
-    id 'io.github.pitinga.trivy'
-}
-~~~
+## Links
 
-Do not also declare the published version for this plugin. Refresh the Gradle project in Eclipse or rerun the Gradle wrapper. To return to the Portal release, remove the composite-build configuration and apply `version '0.1.2'` after it is available in the Portal.
-
-## Trivy installation and cache
-
-1. When `preferInstalled = true`, search `PATH` for Trivy and use it if found.
-2. Otherwise resolve the requested Trivy version, look for an existing verified installation in `GRADLE_USER_HOME/trivy/VERSION/PLATFORM`, or download it from official GitHub Releases.
-3. Verify the downloaded archive with its official SHA-256 checksum.
-4. Only when the shared cache fails for permissions reasons, fall back to `<root-project>/.gradle/trivy/VERSION/PLATFORM`.
-
-No system-wide Trivy installation or `PATH` mutation is performed. Trivy's vulnerability database cache is independent of its executable cache.
-
-With `version = 'latest'`, resolving a download version requires a GitHub API lookup. With a pinned version, the exact selected cache can be reused. For errors or access problems, see [Troubleshooting](docs/TROUBLESHOOTING.md).
-
-## Output, exit codes and security limitations
-
-The report uses a simple ASCII text layout, suitable for Eclipse on Windows. It shows vulnerability IDs, severity, affected package, installed version, suggested fixed version and advisory title.
-
-- `failOnVulnerability = false` (**default**) allows a successful Gradle build even when CVEs are found. Set it to `true` to gate builds.
-- `scanners = 'vuln'` (**default**) does **not** run the Trivy secret scanner. The custom report template does not provide full secret-finding output. For secrets, use the Trivy CLI's own reporting separately.
-- An empty report may mean the selected mode did not recognize the files, not that the project is safe.
-- An explicit project-directory scan can report vulnerabilities in generated files or tools that are not dependencies of the application JAR.
-- The plugin does **not** automatically scan container images, registries or all artifacts in a multi-project build.
-- SHA-256 verification protects archive integrity against the supplied official checksum; it is not independent signature verification.
-
-## Requirements and compatibility
-
-| Environment | Status |
-| --- | --- |
-| Gradle 8.14.3, 9.1.0, 9.9.0 | Tested on Windows and Linux |
-| JDK 17 | Tested |
-| JDK 25 with Gradle 9.9.0 | Tested |
-| Windows x64, Linux x64 | Tested in CI |
-| Linux ARM64, macOS x64/ARM64 | Installer support; not in the CI matrix |
-| Gradle 10 | Not validated |
-
-Network access may be needed for Trivy binaries and vulnerability databases. Linux/macOS require `tar` for binary extraction. Windows ZIP extraction is handled by the plugin.
-
-## Documentation and project links
-
-- [Complete configuration reference](docs/CONFIGURATION.md) — all properties, defaults, version differences and CLI overrides
-- [Step-by-step examples](docs/EXAMPLES.md) — Java, Spring Boot, Eclipse, Azure DevOps and GitHub Actions
-- [Troubleshooting](docs/TROUBLESHOOTING.md) — Java scan modes, cached tools, PowerShell and security limitations
-- [Changelog](CHANGELOG.md) — published and upcoming changes
-- [Release and publishing guide](RELEASING.md) — publication workflow and credentials
-- [Source code](https://github.com/pitinga/gradle-plugin-trivy) · [Issue tracker](https://github.com/pitinga/gradle-plugin-trivy/issues) · [Gradle Plugin Portal](https://plugins.gradle.org/plugin/io.github.pitinga.trivy)
-
-## License
-
-[MIT](LICENSE).
+[Complete configuration](docs/CONFIGURATION.md) · [Usage examples](docs/EXAMPLES.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Release instructions](RELEASING.md) · [Changelog and release history](CHANGELOG.md) · [MIT license](LICENSE)
